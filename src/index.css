@@ -1,17 +1,46 @@
 @import "tailwindcss";
 
+:root {
+  --bg-base:     #07070d;
+  --bg-surface:  #0f0f18;
+  --bg-elevated: #14141f;
+  --bg-overlay:  #1a1a28;
+
+  --accent:        #d946a8;
+  --accent-dim:    #a21caf;
+  --accent-glow:   rgba(217, 70, 168, 0.25);
+  --accent-subtle: rgba(217, 70, 168, 0.08);
+
+  --text-primary:   #ededf5;
+  --text-secondary: #8888a0;
+  --text-muted:     #50506a;
+  --text-accent:    #e879d0;
+
+  --border:        #1e1e30;
+  --border-strong: #2a2a40;
+  --border-accent: rgba(217, 70, 168, 0.2);
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #3b82f6;
+
+  --glow-accent: 0 0 20px rgba(217,70,168,0.15), 0 0 60px rgba(217,70,168,0.05);
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.5);
+}
+
 @theme {
-  --color-surface: #1a1a1a;
-  --color-surface-2: #222222;
-  --color-surface-3: #2a2a2a;
-  --color-border: #333333;
-  --color-border-light: #3a3a3a;
-  --color-text: #e5e5e5;
-  --color-text-muted: #999999;
-  --color-text-dim: #666666;
-  --color-accent: #dc2626;
-  --color-accent-light: #ef4444;
-  --color-accent-dim: rgba(220, 38, 38, 0.15);
+  --color-surface: #0f0f18;
+  --color-surface-2: #14141f;
+  --color-surface-3: #1a1a28;
+  --color-border: #1e1e30;
+  --color-border-light: #2a2a40;
+  --color-text: #ededf5;
+  --color-text-muted: #8888a0;
+  --color-text-dim: #50506a;
+  --color-accent: #d946a8;
+  --color-accent-light: #e879d0;
+  --color-accent-dim: rgba(217, 70, 168, 0.15);
 }
 
 body {
@@ -19,17 +48,23 @@ body {
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #1a1a1e;
-  color: #e5e5e5;
+  background: var(--bg-base);
+  color: var(--text-primary);
 }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* Dark form elements */
 input, select, textarea {
   color-scheme: dark;
+}
+
+/* Focus styles for inputs */
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
 }
