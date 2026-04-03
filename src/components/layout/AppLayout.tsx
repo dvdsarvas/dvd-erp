@@ -16,6 +16,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { path: '/',                        label: 'Nadzorna ploča',    section: 'Pregled' },
+  { path: '/akcije',                  label: 'Što napraviti',    section: 'Pregled' },
   { path: '/clanstvo',                label: 'Članstvo',          section: 'Upravljanje' },
   { path: '/imovina',                 label: 'Imovina i vozila',  section: 'Upravljanje' },
   { path: '/sjednice/skupstine',      label: 'Skupštine',         section: 'Sjednice' },

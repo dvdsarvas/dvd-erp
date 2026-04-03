@@ -20,6 +20,7 @@ import { VatrogasnaPage } from '@/pages/vatrogasna/VatrogasnaPage'
 import { ArhivaPage } from '@/pages/arhiva/ArhivaPage'
 import { RacuniPage } from '@/pages/racuni/RacuniPage'
 import { BankPage } from '@/pages/racuni/BankPage'
+import { AkcijskiCentar } from '@/pages/akcije/AkcijskiCentar'
 import { PostavkePage } from '@/pages/administracija/PostavkePage'
 import { VatronetExport } from '@/pages/administracija/VatronetExport'
 
@@ -58,6 +59,7 @@ export default function App() {
     <AppLayout>
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/akcije" component={AkcijskiCentar} />
         <Route path="/clanstvo" component={ClanstvoList} />
         <Route path="/clanstvo/novi" component={ClanForma} />
         <Route path="/clanstvo/:id/uredi" component={ClanForma} />
