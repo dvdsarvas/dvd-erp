@@ -5,10 +5,12 @@ import App from './App'
 import { initAuth } from '@/lib/supabase/auth'
 
 // Inicijalizacija auth prije rendera
-initAuth().then(() => {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <App />
-    </StrictMode>
-  )
-})
+initAuth()
+  .catch(err => console.error('Auth inicijalizacija neuspješna:', err))
+  .finally(() => {
+    createRoot(document.getElementById('root')!).render(
+      <StrictMode>
+        <App />
+      </StrictMode>
+    )
+  })
