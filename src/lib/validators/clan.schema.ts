@@ -1,19 +1,5 @@
 import { z } from 'zod'
-
-function validateOIB(oib: string): boolean {
-  if (!oib || oib.length !== 11 || !/^\d{11}$/.test(oib)) return false
-  let a = 10
-  for (let i = 0; i < 10; i++) {
-    a = a + parseInt(oib[i], 10)
-    a = a % 10
-    if (a === 0) a = 10
-    a *= 2
-    a = a % 11
-  }
-  let kontrolna = 11 - a
-  if (kontrolna === 10) kontrolna = 0
-  return kontrolna === parseInt(oib[10], 10)
-}
+import { validateOIB } from '@/lib/utils/formatters'
 
 export const clanSchema = z.object({
   ime: z.string().min(1, 'Ime je obavezno').max(100),
