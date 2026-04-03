@@ -135,3 +135,88 @@ export async function dohvatiDokumentUrl(path: string): Promise<string> {
   const { data } = await supabase.storage.from('dokumenti').createSignedUrl(path, 3600) // 1h
   return data?.signedUrl || ''
 }
+
+// ── Kategorizacija računa ──────────────────────────────────
+
+export interface DobavljacKategorija {
+  naziv_stranke: string
+  plan_stavka_id: string | null
+  aop_konto: string
+}
+
+/**
+ * Dohvati zapamćenu kategoriju za dobavljača.
+ * Poziva se kad korisnik upiše naziv stranke — automatski prijedlog.
+ */
+export async function dohvatiKategorijuDobavljaca(
+  nazivStranke: string
+): Promise<DobavljacKategorija | null> {
+  const { data } = await supabase
+    .from('dobavljaci_kategorije' as any)
+    .select('naziv_stranke, plan_stavka_id, aop_konto')
+    .eq('naziv_stranke', nazivStranke.toLowerCase().trim())
+    .maybeSingle()
+  return data as unknown as DobavljacKategorija | null
+}
+
+/**
+ * Dohvati stavke financijskog plana za tekuću godinu (rashodi) — za dropdown.
+ */
+export async function dohvatiStavkeZaKategorizaciju(godina: number) {
+  const plan = await dohvatiFinPlan(godina)
+  if (!plan) return []
+  const { data, error } = await supabase
+    .from('financijski_plan_stavke')
+    .select('id, naziv_stavke, kategorija, racunski_plan_konto, iznos_plan, iznos_ostvareno')
+    .eq('plan_id', plan.id)
+    .eq('kategorija', 'rashod')
+    .order('redni_broj')
+  if (error) throw error
+  return data
+}
+
+// ── Knjiga ulaznih računa (VIEW) ───────────────────────────
+
+export interface KnjigaUlazniRacun {
+  redni_broj: number
+  godina: number
+  interni_broj: string | null
+  datum_racuna: string
+  naziv_stranke: string
+  opis: string | null
+  iznos_ukupno: number
+  status: string
+  aop_konto: string | null
+  kategorija_plana: string | null
+  datum_placanja: string | null
+  likvidirao_ime: string | null
+  datum_likvidacije: string | null
+}
+
+export async function dohvatiKnjiguUlaznihRacuna(
+  godina: number
+): Promise<KnjigaUlazniRacun[]> {
+  const { data, error } = await supabase
+    .from('knjiga_ulaznih_racuna' as any)
+    .select('*')
+    .eq('godina', godina)
+    .order('redni_broj')
+  if (error) throw error
+  return data as unknown as KnjigaUlazniRacun[]
+}
+
+// ── Označi kao poslano knjigovođi ────────────────────────────
+
+export async function oznacPoslatoKnjigov(
+  racunIds: string[],
+  korisnikId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('racuni')
+    .update({
+      poslano_knjigov_datum: new Date().toISOString(),
+      poslano_knjigov_id: korisnikId,
+    } as any)
+    .in('id', racunIds)
+  if (error) throw error
+}
