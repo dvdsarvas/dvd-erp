@@ -338,6 +338,7 @@ export function Dashboard() {
         <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Brze akcije</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
+            { label: 'Pripremi skupštinu', href: '/skupstina/pripremi' },
             { label: 'Nova sjednica UO', href: '/sjednice/upravni-odbor/nova' },
             { label: 'Novi član', href: '/clanstvo/novi' },
             { label: 'Nova intervencija', href: '/vatrogasna' },
@@ -345,7 +346,6 @@ export function Dashboard() {
             { label: 'Plan rada', href: '/plan-rada' },
             { label: 'Financije', href: '/financije' },
             { label: 'Nabava', href: '/nabava' },
-            { label: 'Imovina', href: '/imovina' },
           ].map(a => (
             <Link key={a.href} href={a.href}
               className="flex items-center gap-3 p-4 rounded-xl transition-all border"
