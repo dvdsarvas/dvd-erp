@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/auth.store'
+import { StatusBadge } from '@/components/shared/StatusBadge'
 import { dohvatiClanoveSPregledom } from '@/lib/supabase/queries/zdravlje'
 import type { ClanZdravlje } from '@/lib/supabase/queries/zdravlje'
 
@@ -165,7 +166,7 @@ export function Dashboard() {
                   <div className="text-[13px] text-[#ddd] truncate">{s.naziv}</div>
                   <div className="text-[11px] text-[#777]">{new Date(s.datum).toLocaleDateString('hr-HR')}</div>
                 </div>
-                <StatusPill status={s.status} />
+                <StatusBadge status={s.status} varijanta="sjednica" />
               </Link>
             ))}
           </div>
@@ -212,20 +213,3 @@ function KPI({ label, value, color }: { label: string; value: number | string; c
   )
 }
 
-function StatusPill({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    planirana: 'bg-blue-500/20 text-blue-400',
-    pozivnica_poslana: 'bg-yellow-500/20 text-yellow-400',
-    odrzana: 'bg-emerald-500/20 text-emerald-400',
-    zapisnik_potpisan: 'bg-emerald-500/20 text-emerald-400',
-    arhivirana: 'bg-[#3a3a3e] text-[#aaa]',
-  }
-  const labels: Record<string, string> = {
-    planirana: 'Planirana', pozivnica_poslana: 'Pozivnica', odrzana: 'Održana', zapisnik_potpisan: 'Potpisano', arhivirana: 'Arhivirana',
-  }
-  return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${styles[status] || 'bg-[#3a3a3e] text-[#aaa]'}`}>
-      {labels[status] || status}
-    </span>
-  )
-}

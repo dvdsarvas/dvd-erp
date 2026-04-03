@@ -1,6 +1,6 @@
 interface StatusBadgeProps {
   status: string
-  varijanta?: 'sjednica' | 'nabava' | 'izvjesce' | 'clan' | 'racun'
+  varijanta?: 'sjednica' | 'nabava' | 'izvjesce' | 'clan' | 'racun' | 'kategorija' | 'clanarina'
 }
 
 const STILOVI: Record<string, Record<string, { bg: string; text: string; label: string }>> = {
@@ -37,10 +37,30 @@ const STILOVI: Record<string, Record<string, { bg: string; text: string; label: 
     placeno: { bg: 'bg-green-900/25', text: 'text-green-400', label: 'Plaćeno' },
     odbijeno: { bg: 'bg-red-900/25', text: 'text-red-400', label: 'Odbijeno' },
   },
+  kategorija: {
+    dobrovoljni_vatrogasac: { bg: '', text: 'text-[#bbb]', label: 'Operativni' },
+    prikljuceni: { bg: '', text: 'text-[#bbb]', label: 'Priključeni' },
+    pocasni: { bg: '', text: 'text-[#bbb]', label: 'Počasni' },
+    podmladak: { bg: '', text: 'text-[#bbb]', label: 'Podmladak' },
+  },
+  clanarina: {
+    placeno: { bg: 'bg-green-900/25', text: 'text-green-400', label: 'Plaćeno' },
+    neplaceno: { bg: 'bg-red-900/25', text: 'text-red-400', label: 'Neplaćeno' },
+    nepoznato: { bg: '', text: 'text-[#777]', label: '—' },
+  },
 }
 
 export function StatusBadge({ status, varijanta = 'sjednica' }: StatusBadgeProps) {
   const stil = STILOVI[varijanta]?.[status] || { bg: 'bg-[#3a3a3e]', text: 'text-[#999]', label: status }
+
+  if (varijanta === 'kategorija') {
+    return <span className={`text-xs ${stil.text}`}>{stil.label}</span>
+  }
+
+  if (varijanta === 'clanarina' && status === 'nepoznato') {
+    return <span className="text-[#777] text-xs">—</span>
+  }
+
   return (
     <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${stil.bg} ${stil.text}`}>
       {stil.label}

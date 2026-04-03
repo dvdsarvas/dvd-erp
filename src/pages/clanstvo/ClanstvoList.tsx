@@ -3,6 +3,7 @@ import { Link } from 'wouter'
 import { dohvatiClanove, dohvatiClanarineZaGodinu } from '@/lib/supabase/queries/clanovi'
 import type { Clan, ClanFilter } from '@/lib/supabase/queries/clanovi'
 import { useAuthStore } from '@/store/auth.store'
+import { StatusBadge } from '@/components/shared/StatusBadge'
 
 const KATEGORIJE = [
   { value: '', label: 'Sve kategorije' },
@@ -166,14 +167,14 @@ export function ClanstvoList() {
                     </td>
                     <td className="px-4 py-3 text-[#bbb]">{clan.vatrogasno_zvanje || '—'}</td>
                     <td className="px-4 py-3">
-                      <KategorijaBadge kategorija={clan.kategorija} />
+                      <StatusBadge status={clan.kategorija} varijanta="kategorija" />
                     </td>
                     <td className="px-4 py-3 text-[#bbb] hidden md:table-cell">{clan.mobitel || '—'}</td>
                     <td className="px-4 py-3">
-                      <StatusBadge status={clan.status} />
+                      <StatusBadge status={clan.status} varijanta="clan" />
                     </td>
                     <td className="px-4 py-3">
-                      <ClanarinaStatus placeno={placanjaMap[clan.id]} />
+                      <StatusBadge status={placanjaMap[clan.id] === undefined ? 'nepoznato' : placanjaMap[clan.id] ? 'placeno' : 'neplaceno'} varijanta="clanarina" />
                     </td>
                   </tr>
                 ))}
@@ -186,53 +187,3 @@ export function ClanstvoList() {
   )
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const stilovi: Record<string, string> = {
-    aktivan: 'bg-green-900/25 text-green-400',
-    neaktivan: 'bg-[#2a2a2e] text-[#bbb]',
-    istupio: 'bg-yellow-900/25 text-yellow-400',
-    iskljucen: 'bg-red-900/25 text-red-400',
-  }
-  const labele: Record<string, string> = {
-    aktivan: 'Aktivan',
-    neaktivan: 'Neaktivan',
-    istupio: 'Istupio',
-    iskljucen: 'Isključen',
-  }
-
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${stilovi[status] || 'bg-[#2a2a2e] text-[#bbb]'}`}>
-      {labele[status] || status}
-    </span>
-  )
-}
-
-function KategorijaBadge({ kategorija }: { kategorija: string }) {
-  const labele: Record<string, string> = {
-    dobrovoljni_vatrogasac: 'Operativni',
-    prikljuceni: 'Priključeni',
-    pocasni: 'Počasni',
-    podmladak: 'Podmladak',
-  }
-
-  return (
-    <span className="text-[#bbb] text-xs">
-      {labele[kategorija] || kategorija}
-    </span>
-  )
-}
-
-function ClanarinaStatus({ placeno }: { placeno?: boolean }) {
-  if (placeno === undefined) {
-    return <span className="text-[#777] text-xs">—</span>
-  }
-  return placeno ? (
-    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-900/25 text-green-400">
-      Plaćeno
-    </span>
-  ) : (
-    <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-900/25 text-red-400">
-      Neplaćeno
-    </span>
-  )
-}
