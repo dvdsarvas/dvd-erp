@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'wouter'
+import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/auth.store'
 import { useNotificationsStore } from '@/store/notifications.store'
 import { signOut } from '@/lib/supabase/auth'
+import { slideIn } from '@/lib/animations'
 
 interface NavItem {
   path: string
@@ -61,14 +63,23 @@ function Sidebar({ open }: { open: boolean }) {
   }
 
   return (
-    <aside
-      className={`${open ? 'w-[220px]' : 'w-0 overflow-hidden'} flex-shrink-0 flex flex-col transition-all duration-200 border-r`}
+    <motion.aside
+      animate={{ width: open ? 220 : 0 }}
+      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+      className="flex-shrink-0 overflow-hidden flex flex-col border-r"
       style={{ background: 'var(--bg-base)', borderColor: 'var(--border)' }}
     >
       {/* Logo */}
       <div className="px-5 py-5">
         <div className="flex items-center gap-3">
-          <img src="/logo-dvd.jpg" alt="DVD Sarvaš" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+          <motion.img
+            src="/logo-dvd.jpg"
+            alt="DVD Sarvaš"
+            className="w-9 h-9 rounded-lg object-cover flex-shrink-0"
+            animate={{ opacity: [0.7, 1, 0.7] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ filter: 'drop-shadow(0 0 8px var(--accent-glow))' }}
+          />
           <div className="min-w-0">
             <div className="text-[13px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>DVD Sarvaš</div>
             <div className="text-[9px] uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--accent)' }}>ERP SUSTAV</div>
@@ -78,7 +89,7 @@ function Sidebar({ open }: { open: boolean }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-1 px-3">
-        {NAV.map(item => {
+        {NAV.map((item, index) => {
           const showSection = item.section !== prevSection
           prevSection = item.section
           const active = location === item.path || (item.path !== '/' && location.startsWith(item.path))
@@ -91,20 +102,27 @@ function Sidebar({ open }: { open: boolean }) {
                   {item.section}
                 </div>
               )}
-              <Link href={item.path}
-                className="flex items-center gap-2 px-3 py-[7px] text-[13px] rounded-md cursor-pointer transition-all"
-                style={active
-                  ? { background: 'var(--accent-subtle)', color: 'var(--text-accent)', fontWeight: 500, boxShadow: 'var(--glow-accent)' }
-                  : { color: 'var(--text-secondary)' }
-                }
+              <motion.div
+                variants={slideIn}
+                initial="hidden"
+                animate="visible"
+                custom={index}
               >
-                <span className="flex-1 truncate">{item.label}</span>
-                {badge && (
-                  <span className="text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--danger)' }}>
-                    {badge}
-                  </span>
-                )}
-              </Link>
+                <Link href={item.path}
+                  className="flex items-center gap-2 px-3 py-[7px] text-[13px] rounded-md cursor-pointer transition-all"
+                  style={active
+                    ? { background: 'var(--accent-subtle)', color: 'var(--text-accent)', fontWeight: 500, boxShadow: 'var(--glow-accent)' }
+                    : { color: 'var(--text-secondary)' }
+                  }
+                >
+                  <span className="flex-1 truncate">{item.label}</span>
+                  {badge && (
+                    <span className="text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--danger)' }}>
+                      {badge}
+                    </span>
+                  )}
+                </Link>
+              </motion.div>
             </div>
           )
         })}
@@ -112,7 +130,7 @@ function Sidebar({ open }: { open: boolean }) {
 
       {/* User at bottom */}
       <UserBlock />
-    </aside>
+    </motion.aside>
   )
 }
 
