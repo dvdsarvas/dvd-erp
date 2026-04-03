@@ -1,57 +1,55 @@
 import { create } from 'zustand'
-
-export interface DVDConfig {
-  naziv: string
-  nazivKratki: string
-  slug: string
-  oib: string
-  maticniBroj: string
-  iban: string
-  adresa: string
-  mjesto: string
-  postanskiBroj: string
-  email: string
-  web: string
-  logoUrl: string | null
-  boja: string
-  nadredjena: string
-  datumOsnivanja: string
-  predsjednik: string
-  zapovjednik: string
-}
+import { dohvatiOrganizaciju, dohvatiFunkcionere } from '@/lib/supabase/queries/organizacija'
+import type { DVDOrganizacija, TrenutniFlunkcioneri } from '@/lib/supabase/queries/organizacija'
 
 interface DVDStore {
-  config: DVDConfig
+  organizacija: DVDOrganizacija | null
+  funkcioneri: TrenutniFlunkcioneri | null
   loaded: boolean
-  init: () => void
+  loading: boolean
+  init: () => Promise<void>
+  refresh: () => Promise<void>
 }
 
-const DEFAULT_CONFIG: DVDConfig = {
-  naziv: 'Dobrovoljno vatrogasno društvo Sarvaš',
-  nazivKratki: 'DVD Sarvaš',
-  slug: 'sarvas',
-  oib: '48874677674',
-  maticniBroj: '02794586',
-  iban: '2360000-1102233720',
-  adresa: 'Ivana Mažuranića 31',
-  mjesto: 'Sarvaš',
-  postanskiBroj: '31000',
-  email: 'dvdsarvas@gmail.com',
-  web: 'www.dvdsarvas.hr',
-  logoUrl: '/logo-dvd.jpg',
-  boja: '#dc2626',
-  nadredjena: 'Vatrogasna zajednica Grada Osijeka',
-  datumOsnivanja: '2011-07-16',
-  predsjednik: 'Atila Vadoci',
-  zapovjednik: 'Saša Davidović',
-}
-
-export const useDVDStore = create<DVDStore>((set) => ({
-  config: DEFAULT_CONFIG,
+export const useDVDStore = create<DVDStore>((set, get) => ({
+  organizacija: null,
+  funkcioneri: null,
   loaded: false,
-  init: () => {
-    // Za sada koristimo hardkodirane podatke
-    // U budućnosti: dohvati iz Supabase tablice dvd_organizacije
-    set({ config: DEFAULT_CONFIG, loaded: true })
+  loading: false,
+
+  init: async () => {
+    if (get().loaded) return
+    set({ loading: true })
+    try {
+      const [org, funk] = await Promise.all([
+        dohvatiOrganizaciju(),
+        dohvatiFunkcionere(),
+      ])
+      set({ organizacija: org, funkcioneri: funk, loaded: true })
+    } catch (err) {
+      console.error('DVD store init greška:', err)
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  refresh: async () => {
+    set({ loading: true })
+    try {
+      const [org, funk] = await Promise.all([
+        dohvatiOrganizaciju(),
+        dohvatiFunkcionere(),
+      ])
+      set({ organizacija: org, funkcioneri: funk })
+    } catch (err) {
+      console.error('DVD store refresh greška:', err)
+    } finally {
+      set({ loading: false })
+    }
   },
 }))
+
+// Backwards compatibility — helper getteri
+export function getDVDNaziv(store: DVDStore): string {
+  return store.organizacija?.naziv_kratki ?? 'DVD ERP'
+}

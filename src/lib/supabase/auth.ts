@@ -1,6 +1,7 @@
 import { supabase } from './client'
 import { useAuthStore } from '@/store/auth.store'
 import type { Korisnik } from '@/store/auth.store'
+import { useDVDStore } from '@/store/dvd.store'
 
 // Inicijalizacija — pozvati jednom u main.tsx
 export async function initAuth() {
@@ -51,6 +52,8 @@ async function loadKorisnik(userId: string) {
   }
 
   setKorisnik(data as Korisnik)
+  // Automatski učitaj podatke organizacije
+  useDVDStore.getState().init()
 }
 
 export async function signIn(email: string, lozinka: string) {
