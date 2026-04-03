@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'wouter'
 import { useAuthStore } from '@/store/auth.store'
+import { useNotificationsStore } from '@/store/notifications.store'
 import { signOut } from '@/lib/supabase/auth'
 
 interface NavItem {
@@ -47,7 +48,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 function Sidebar({ open }: { open: boolean }) {
   const [location] = useLocation()
+  const { alarmi, ucitajAlarme } = useNotificationsStore()
   let prevSection = ''
+
+  useEffect(() => {
+    ucitajAlarme()
+  }, [])
+
+  const badgeMap: Record<string, number> = {
+    '/zakonska-izvjesca': alarmi.filter(a => a.href === '/zakonska-izvjesca' && a.hitnost === 'crveno').length,
+    '/imovina': alarmi.filter(a => a.href === '/imovina' && a.hitnost === 'crveno').length,
+  }
 
   return (
     <aside className={`${open ? 'w-[220px]' : 'w-0 overflow-hidden'} flex-shrink-0 bg-[#1a1a1e] flex flex-col transition-all duration-200 border-r border-[#2e2e32]`}>
@@ -69,6 +80,7 @@ function Sidebar({ open }: { open: boolean }) {
           const showSection = item.section !== prevSection
           prevSection = item.section
           const active = location === item.path || (item.path !== '/' && location.startsWith(item.path))
+          const badge = badgeMap[item.path] || undefined
 
           return (
             <div key={item.path}>
@@ -85,9 +97,9 @@ function Sidebar({ open }: { open: boolean }) {
                 }
               `}>
                 <span className="flex-1 truncate">{item.label}</span>
-                {item.badge && (
+                {badge && (
                   <span className="bg-red-600 text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                    {item.badge}
+                    {badge}
                   </span>
                 )}
               </Link>
@@ -123,14 +135,28 @@ function UserBlock() {
 }
 
 function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
+  const { neprocitano } = useNotificationsStore()
+
   return (
     <header className="h-12 bg-[#1a1a1e] border-b border-[#2e2e32] flex items-center px-5 gap-4 flex-shrink-0">
       <button onClick={onMenuClick} className="text-[#777] hover:text-[#bbb] transition-colors">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
-      <div className="text-[11px] text-[#aaa] uppercase tracking-widest font-medium">
+      <div className="text-[11px] text-[#aaa] uppercase tracking-widest font-medium flex-1">
         ERP &rsaquo; <span className="text-[#aaa]">DVD Sarvaš</span>
       </div>
+      {/* Notification bell */}
+      <Link href="/zakonska-izvjesca" className="relative text-[#777] hover:text-[#bbb] transition-colors">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        {neprocitano > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+            {neprocitano}
+          </span>
+        )}
+      </Link>
     </header>
   )
 }
