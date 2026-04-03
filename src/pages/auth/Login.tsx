@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { signIn, resetPassword } from '@/lib/supabase/auth'
+import { scaleIn } from '@/lib/animations'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -15,7 +17,6 @@ export function Login() {
     setLoading(true)
     try {
       await signIn(email, lozinka)
-      // auth.store će se ažurirati automatski putem onAuthStateChange
     } catch (err) {
       setGreska('Pogrešan email ili lozinka.')
     } finally {
@@ -37,132 +38,151 @@ export function Login() {
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    background: 'var(--bg-base)',
+    borderColor: 'var(--border-strong)',
+    color: 'var(--text-primary)',
+  }
+
   return (
-    <div className="min-h-screen flex">
-      {/* Lijeva strana — hero slika */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-        <img src="/photos/540389023_1208987131261045_3267553643391095664_n.jpg" alt="DVD Sarvaš" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        <div className="absolute bottom-12 left-12 right-12 text-white">
-          <h2 className="text-3xl font-bold mb-2">DVD Sarvaš</h2>
-          <p className="text-white/80 text-sm">Dobrovoljno vatrogasno društvo Sarvaš — sustav za digitalizaciju dokumentacije i upravljanje vatrogasnim društvom.</p>
-        </div>
-      </div>
-
-      {/* Desna strana — login */}
-      <div className="flex-1 flex items-center justify-center px-6 bg-[#1a1a1e]">
-      <div className="w-full max-w-sm">
-
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{
+        background: 'radial-gradient(ellipse at 30% 50%, rgba(217,70,168,0.08) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(162,28,175,0.05) 0%, transparent 50%), var(--bg-base)',
+      }}
+    >
+      <motion.div
+        variants={scaleIn}
+        initial="hidden"
+        animate="visible"
+        className="rounded-2xl p-8 w-full max-w-[400px]"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border-accent)',
+          boxShadow: 'var(--glow-accent), var(--shadow-card)',
+        }}
+      >
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo-dvd.jpg" alt="DVD Sarvaš" className="w-16 h-16 rounded-xl mx-auto mb-4 object-cover" />
-          <h1 className="text-xl font-bold text-white">DVD Sarvaš</h1>
-          <p className="text-sm text-[#777] mt-1">Sustav upravljanja</p>
+          <motion.img
+            src="/logo-dvd.jpg"
+            alt="DVD Sarvaš"
+            className="w-20 h-20 rounded-2xl mx-auto mb-4 object-cover"
+            animate={{ opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ filter: 'drop-shadow(0 0 12px var(--accent-glow))', boxShadow: 'var(--glow-accent)' }}
+          />
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>DVD Sarvaš</h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Sustav upravljanja</p>
         </div>
 
-        {/* Kartica */}
-        <div className="bg-[#242428] border border-[#333338] rounded-xl p-6">
-
-          {resetPoslano ? (
-            <div className="text-center">
-              <div className="text-green-400 text-3xl mb-3">✓</div>
-              <p className="font-medium text-white">Email poslan</p>
-              <p className="text-sm text-[#aaa] mt-1">
-                Provjerite inbox za link za reset lozinke.
-              </p>
-              <button
-                onClick={() => { setResetMode(false); setResetPoslano(false) }}
-                className="mt-4 text-sm text-[#aaa] hover:text-white underline"
+        {resetPoslano ? (
+          <div className="text-center">
+            <div className="text-3xl mb-3" style={{ color: 'var(--success)' }}>&#10003;</div>
+            <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Email poslan</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Provjerite inbox za link za reset lozinke.
+            </p>
+            <button
+              onClick={() => { setResetMode(false); setResetPoslano(false) }}
+              className="mt-4 text-sm underline" style={{ color: 'var(--text-secondary)' }}
+            >
+              Natrag na prijavu
+            </button>
+          </div>
+        ) : resetMode ? (
+          <>
+            <h2 className="font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Reset lozinke</h2>
+            <form onSubmit={handleReset} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none"
+                  style={inputStyle}
+                  placeholder="vase@email.hr"
+                />
+              </div>
+              {greska && <p className="text-sm px-3 py-2 rounded-lg" style={{ color: 'var(--danger)', background: 'rgba(239,68,68,0.1)' }}>{greska}</p>}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-2.5 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))' }}
               >
-                Natrag na prijavu
-              </button>
-            </div>
-          ) : resetMode ? (
-            <>
-              <h2 className="font-medium text-white mb-4">Reset lozinke</h2>
-              <form onSubmit={handleReset} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-[#aaa] mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#3a3a3e] rounded-lg text-sm bg-[#1e1e22] text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="vase@email.hr"
-                  />
-                </div>
-                {greska && <p className="text-sm text-red-600">{greska}</p>}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50"
-                >
-                  {loading ? 'Slanje...' : 'Pošalji reset link'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setResetMode(false)}
-                  className="w-full text-sm text-[#aaa] hover:text-[#aaa]"
-                >
-                  Natrag
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <h2 className="font-medium text-white mb-4">Prijava</h2>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div>
-                  <label className="block text-sm text-[#aaa] mb-1">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#3a3a3e] rounded-lg text-sm bg-[#1e1e22] text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="vase@email.hr"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-[#aaa] mb-1">Lozinka</label>
-                  <input
-                    type="password"
-                    required
-                    value={lozinka}
-                    onChange={e => setLozinka(e.target.value)}
-                    className="w-full px-3 py-2 border border-[#3a3a3e] rounded-lg text-sm bg-[#1e1e22] text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                    placeholder="••••••••"
-                  />
-                </div>
-                {greska && (
-                  <p className="text-sm text-red-600 bg-red-900/20 px-3 py-2 rounded-lg">
-                    {greska}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-                >
-                  {loading ? 'Prijava...' : 'Prijavi se'}
-                </button>
-              </form>
+                {loading ? 'Slanje...' : 'Pošalji reset link'}
+              </motion.button>
               <button
-                onClick={() => setResetMode(true)}
-                className="mt-3 w-full text-sm text-[#aaa] hover:text-[#aaa]"
+                type="button"
+                onClick={() => setResetMode(false)}
+                className="w-full text-sm" style={{ color: 'var(--text-secondary)' }}
               >
-                Zaboravili ste lozinku?
+                Natrag
               </button>
-            </>
-          )}
-        </div>
+            </form>
+          </>
+        ) : (
+          <>
+            <h2 className="font-medium mb-4" style={{ color: 'var(--text-primary)' }}>Prijava</h2>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Email</label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none"
+                  style={inputStyle}
+                  placeholder="vase@email.hr"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>Lozinka</label>
+                <input
+                  type="password"
+                  required
+                  value={lozinka}
+                  onChange={e => setLozinka(e.target.value)}
+                  className="w-full px-3 py-2.5 border rounded-lg text-sm focus:outline-none"
+                  style={inputStyle}
+                  placeholder="••••••••"
+                />
+              </div>
+              {greska && (
+                <p className="text-sm px-3 py-2 rounded-lg" style={{ color: 'var(--danger)', background: 'rgba(239,68,68,0.1)' }}>
+                  {greska}
+                </p>
+              )}
+              <motion.button
+                type="submit"
+                disabled={loading}
+                whileHover={{ scale: 1.02, filter: 'brightness(1.1)' }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-2.5 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-all"
+                style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-dim))' }}
+              >
+                {loading ? 'Prijava...' : 'Prijavi se'}
+              </motion.button>
+            </form>
+            <button
+              onClick={() => setResetMode(true)}
+              className="mt-3 w-full text-sm" style={{ color: 'var(--text-muted)' }}
+            >
+              Zaboravili ste lozinku?
+            </button>
+          </>
+        )}
 
-        <p className="text-center text-xs text-[#777] mt-6">
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--text-muted)' }}>
           DVD ERP v1.0 &middot; Vatrogasna zajednica Grada Osijeka
         </p>
-      </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
