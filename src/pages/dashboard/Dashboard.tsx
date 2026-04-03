@@ -137,7 +137,7 @@ export function Dashboard() {
             : alarmi.length === 0 ? <div className="p-5 text-sm text-[#777]">Nema hitnih rokova.</div>
             : alarmi.slice(0, 8).map(a => (
               <Link key={a.id} href={a.href} className="flex items-center gap-3 px-5 py-3 hover:bg-[#2a2a2e] transition-colors">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.hitnost === 'crveno' ? 'bg-red-500 animate-pulse' : a.hitnost === 'narancasto' ? 'bg-orange-900/200' : 'bg-yellow-900/200'}`} />
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.hitnost === 'crveno' ? 'bg-red-500 animate-pulse' : a.hitnost === 'narancasto' ? 'bg-orange-500/20' : 'bg-yellow-500/20'}`} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] text-[#ddd] truncate">{a.tekst}</div>
                   <div className="text-[11px] text-[#777]">{new Date(a.rok).toLocaleDateString('hr-HR')}</div>
@@ -214,8 +214,8 @@ function KPI({ label, value, color }: { label: string; value: number | string; c
 
 function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    planirana: 'bg-blue-900/200/20 text-blue-400',
-    pozivnica_poslana: 'bg-yellow-900/200/20 text-yellow-400',
+    planirana: 'bg-blue-500/20 text-blue-400',
+    pozivnica_poslana: 'bg-yellow-500/20 text-yellow-400',
     odrzana: 'bg-emerald-500/20 text-emerald-400',
     zapisnik_potpisan: 'bg-emerald-500/20 text-emerald-400',
     arhivirana: 'bg-[#3a3a3e] text-[#aaa]',

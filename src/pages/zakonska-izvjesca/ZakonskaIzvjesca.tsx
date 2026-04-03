@@ -139,12 +139,12 @@ export function ZakonskaIzvjesca() {
 }
 
 function SemaforDot({ dani, status }: { dani: number | null; status: string }) {
-  if (status === 'predano') return <span className="w-2.5 h-2.5 rounded-full bg-green-900/200 flex-shrink-0" />
+  if (status === 'predano') return <span className="w-2.5 h-2.5 rounded-full bg-green-500/20 flex-shrink-0" />
   if (dani == null) return <span className="w-2.5 h-2.5 rounded-full bg-[#444] flex-shrink-0" />
   if (dani < 0) return <span className="w-2.5 h-2.5 rounded-full bg-red-600 flex-shrink-0 animate-pulse" />
   if (dani <= 7) return <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex-shrink-0" />
-  if (dani <= 30) return <span className="w-2.5 h-2.5 rounded-full bg-yellow-900/200 flex-shrink-0" />
-  return <span className="w-2.5 h-2.5 rounded-full bg-green-900/200 flex-shrink-0" />
+  if (dani <= 30) return <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 flex-shrink-0" />
+  return <span className="w-2.5 h-2.5 rounded-full bg-green-500/20 flex-shrink-0" />
 }
 
 function statusBoja(s: string): string {

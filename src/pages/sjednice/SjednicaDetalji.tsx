@@ -240,7 +240,7 @@ function TabPrisutnost({ prisutnost, clanovi, sjednica }: {
     <div className="space-y-6">
       {/* Kvorum info */}
       <div className="flex items-center gap-4 p-4 rounded-lg bg-[#1e1e22]">
-        <div className={`w-3 h-3 rounded-full ${sjednica.kvorum_postignut ? 'bg-green-900/200' : sjednica.kvorum_postignut === false ? 'bg-red-500' : 'bg-[#444]'}`} />
+        <div className={`w-3 h-3 rounded-full ${sjednica.kvorum_postignut ? 'bg-green-500/20' : sjednica.kvorum_postignut === false ? 'bg-red-500' : 'bg-[#444]'}`} />
         <div>
           <div className="text-sm font-medium text-white">
             Prisutno: {sjednica.prisutno_clanova ?? prisutniIds.size} / {sjednica.ukupno_clanova ?? clanovi.length}
@@ -258,7 +258,7 @@ function TabPrisutnost({ prisutnost, clanovi, sjednica }: {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {prisutniClanovi.map(c => (
               <div key={c.id} className="flex items-center gap-2 p-2 rounded-lg bg-green-900/20 text-sm">
-                <span className="w-2 h-2 rounded-full bg-green-900/200" />
+                <span className="w-2 h-2 rounded-full bg-green-500/20" />
                 <span className="text-[#ddd]">{c.prezime} {c.ime}</span>
               </div>
             ))}

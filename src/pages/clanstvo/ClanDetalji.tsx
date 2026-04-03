@@ -237,8 +237,8 @@ function TabVatrogasno({ clan, certifikati, povijestZvanja, odlikovanja, svaZvan
             {povijestZvanja.map((pz: any) => (
               <div key={pz.id} className="flex items-center gap-3 p-3 border border-[#2e2e32] rounded-lg">
                 <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  pz.vatrogasna_zvanja?.kategorija === 'casnik' || pz.vatrogasna_zvanja?.kategorija === 'visi_casnik' ? 'bg-yellow-900/200' :
-                  pz.vatrogasna_zvanja?.kategorija === 'docasnik' ? 'bg-blue-900/200' : 'bg-green-900/200'
+                  pz.vatrogasna_zvanja?.kategorija === 'casnik' || pz.vatrogasna_zvanja?.kategorija === 'visi_casnik' ? 'bg-yellow-500/20' :
+                  pz.vatrogasna_zvanja?.kategorija === 'docasnik' ? 'bg-blue-500/20' : 'bg-green-500/20'
                 }`} />
                 <div className="flex-1">
                   <div className="text-sm font-medium text-white">{pz.vatrogasna_zvanja?.naziv || 'Nepoznato'}</div>
@@ -283,7 +283,7 @@ function TabVatrogasno({ clan, certifikati, povijestZvanja, odlikovanja, svaZvan
           <div className="space-y-2">
             {odlikovanja.map(o => (
               <div key={o.id} className="flex items-center gap-3 p-3 border border-[#2e2e32] rounded-lg">
-                <span className="w-2 h-2 rounded-full bg-yellow-900/200 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-yellow-500/20 flex-shrink-0" />
                 <div className="flex-1">
                   <div className="text-sm font-medium text-white">{o.naziv}</div>
                   <div className="text-xs text-[#999]">{formatDatum(o.datum_dodjele)} {o.dodijelio && `· ${o.dodijelio}`}</div>
@@ -378,8 +378,8 @@ function TabZdravlje({ pregledi, clanId }: { pregledi: ZdravstveniPregled[]; cla
       {zadnji && (
         <div className="flex items-center gap-4 p-4 rounded-lg bg-[#1e1e22]">
           <div className={`w-3 h-3 rounded-full ${
-            zadnji.rezultat === 'sposoban' ? 'bg-green-900/200' :
-            zadnji.rezultat === 'uvjetno_sposoban' ? 'bg-yellow-900/200' : 'bg-red-500'
+            zadnji.rezultat === 'sposoban' ? 'bg-green-500/20' :
+            zadnji.rezultat === 'uvjetno_sposoban' ? 'bg-yellow-500/20' : 'bg-red-500'
           }`} />
           <div>
             <div className="text-sm font-medium text-white">{formatRezultat(zadnji.rezultat)}</div>
