@@ -28,7 +28,7 @@ export async function dohvatiZakonskiSadrzaj(
   kategorija?: string
 ): Promise<ZakonskiSadrzaj[]> {
   let query = supabase
-    .from('zakonski_sadrzaj')
+    .from('zakonski_sadrzaj' as any)
     .select('*')
     .eq('aktivan', true)
     .order('redni_broj')
@@ -37,7 +37,7 @@ export async function dohvatiZakonskiSadrzaj(
   }
   const { data, error } = await query
   if (error) throw error
-  return data as ZakonskiSadrzaj[]
+  return data as unknown as ZakonskiSadrzaj[]
 }
 
 export async function azurirajZakonskiSadrzaj(
@@ -46,13 +46,13 @@ export async function azurirajZakonskiSadrzaj(
   updatedBy: string
 ): Promise<ZakonskiSadrzaj> {
   const { data, error } = await supabase
-    .from('zakonski_sadrzaj')
+    .from('zakonski_sadrzaj' as any)
     .update({ ...podaci, updated_by: updatedBy })
     .eq('id', id)
     .select()
     .single()
   if (error) throw error
-  return data as ZakonskiSadrzaj
+  return data as unknown as ZakonskiSadrzaj
 }
 
 export async function kreirajZakonskiSadrzaj(
@@ -60,18 +60,18 @@ export async function kreirajZakonskiSadrzaj(
   updatedBy: string
 ): Promise<ZakonskiSadrzaj> {
   const { data, error } = await supabase
-    .from('zakonski_sadrzaj')
+    .from('zakonski_sadrzaj' as any)
     .insert({ ...podaci, aktivan: true, updated_by: updatedBy })
     .select()
     .single()
   if (error) throw error
-  return data as ZakonskiSadrzaj
+  return data as unknown as ZakonskiSadrzaj
 }
 
 export async function obrisiZakonskiSadrzaj(id: string): Promise<void> {
   // Soft delete — nikad ne brišemo, samo deaktiviramo
   const { error } = await supabase
-    .from('zakonski_sadrzaj')
+    .from('zakonski_sadrzaj' as any)
     .update({ aktivan: false })
     .eq('id', id)
   if (error) throw error
