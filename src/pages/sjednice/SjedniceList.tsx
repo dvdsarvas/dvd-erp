@@ -3,6 +3,7 @@ import { Link } from 'wouter'
 import { dohvatiSjednice } from '@/lib/supabase/queries/sjednice'
 import type { Sjednica, VrstaSjednice } from '@/lib/supabase/queries/sjednice'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 interface SjedniceListProps {
   vrsteFilter: VrstaSjednice[]
@@ -58,19 +59,15 @@ function SjedniceList({ vrsteFilter, naslov, novaLabel, novaPath }: SjedniceList
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">{naslov}</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {loading ? '...' : `${sjednice.length} sjednica`}
-          </p>
-        </div>
-        {jeUpravackaUloga() && (
-          <Link href={novaPath} className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+      <PageHeader
+        naslov={naslov}
+        opis={loading ? '...' : `${sjednice.length} sjednica`}
+        akcije={jeUpravackaUloga() ? (
+          <Link href={novaPath} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--accent)' }}>
             {novaLabel}
           </Link>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       <div className="bg-[#242428] border border-[#333338] rounded-xl overflow-hidden">
         {loading ? (

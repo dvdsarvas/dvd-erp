@@ -5,6 +5,7 @@ import {
 import type { FinPlan, FinStavka } from '@/lib/supabase/queries/financije'
 import { useAuthStore } from '@/store/auth.store'
 import { generirajFinancijskiPlan } from '@/lib/supabase/queries/predlosci'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const tekucaGodina = new Date().getFullYear()
 
@@ -59,27 +60,23 @@ export function Financije() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Financije {godina}</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {plan ? `Plan: ${fEUR(ukupnoPlan)} · Ostvareno: ${fEUR(ukupnoOstvareno)}` : 'Nema financijskog plana'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        naslov={`Financije ${godina}`}
+        opis={plan ? `Plan: ${fEUR(ukupnoPlan)} · Ostvareno: ${fEUR(ukupnoOstvareno)}` : 'Nema financijskog plana'}
+        akcije={<div className="flex items-center gap-2">
           <select value={godina} onChange={e => setGodina(Number(e.target.value))}
-            className="px-3 py-2 border border-[#333338] rounded-lg text-sm bg-[#242428]">
+            className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             {[tekucaGodina + 1, tekucaGodina, tekucaGodina - 1, tekucaGodina - 2].map(g =>
               <option key={g} value={g}>{g}</option>)}
           </select>
           {!plan && !loading && jeFinancijskaUloga() && (
             <button onClick={handleGeneriraj}
-              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--success)' }}>
               Generiraj plan
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="border-b border-[#333338] mb-6">
       </div>

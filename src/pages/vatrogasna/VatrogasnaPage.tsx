@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dohvatiIntervencije, kreirajIntervenciju, dohvatiVjezbe, kreirajVjezbu } from '@/lib/supabase/queries/vatrogasna'
 import type { Intervencija, Vjezba } from '@/lib/supabase/queries/vatrogasna'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const tekucaGodina = new Date().getFullYear()
 
@@ -67,27 +68,23 @@ export function VatrogasnaPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Vatrogasna djelatnost {godina}</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {intervencije.length} intervencija · {vjezbe.length} vježbi
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        naslov={`Vatrogasna djelatnost ${godina}`}
+        opis={`${intervencije.length} intervencija · ${vjezbe.length} vježbi`}
+        akcije={<div className="flex items-center gap-2">
           <select value={godina} onChange={e => setGodina(Number(e.target.value))}
-            className="px-3 py-2 border border-[#333338] rounded-lg text-sm bg-[#242428]">
+            className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             {[tekucaGodina, tekucaGodina - 1, tekucaGodina - 2].map(g =>
               <option key={g} value={g}>{g}</option>)}
           </select>
           {mozeUnositiIntervencije() && (
             <button onClick={() => setShowForma(true)}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
               + {tab === 'intervencije' ? 'Nova intervencija' : 'Nova vježba'}
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Tabovi */}
       <div className="border-b border-[#333338] mb-6">

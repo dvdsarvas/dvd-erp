@@ -4,6 +4,7 @@ import { dohvatiClanove, dohvatiClanarineZaGodinu } from '@/lib/supabase/queries
 import type { Clan, ClanFilter } from '@/lib/supabase/queries/clanovi'
 import { useAuthStore } from '@/store/auth.store'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const KATEGORIJE = [
   { value: '', label: 'Sve kategorije' },
@@ -73,20 +74,15 @@ export function ClanstvoList() {
 
   return (
     <div>
-      {/* Zaglavlje */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Evidencija članstva</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {loading ? '...' : `${filtriraniClanovi.length} članova`}
-          </p>
-        </div>
-        {jeUpravackaUloga() && (
-          <Link href="/clanstvo/novi" className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+      <PageHeader
+        naslov="Evidencija članstva"
+        opis={loading ? '...' : `${filtriraniClanovi.length} članova`}
+        akcije={jeUpravackaUloga() ? (
+          <Link href="/clanstvo/novi" className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--accent)' }}>
             + Novi član
           </Link>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Filteri */}
       <div className="bg-[#242428] border border-[#333338] rounded-xl p-4 mb-4">

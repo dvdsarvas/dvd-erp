@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dohvatiDokumente, kreirajDokument, obrisiDokument } from '@/lib/supabase/queries/dokumenti'
 import type { Dokument } from '@/lib/supabase/queries/dokumenti'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const MODULI = [
   { value: '', label: 'Svi moduli' },
@@ -67,18 +68,16 @@ export function ArhivaPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Arhiva dokumenata</h1>
-          <p className="text-sm text-[#999] mt-0.5">{dokumenti.length} dokumenata</p>
-        </div>
-        {jeUpravackaUloga() && (
+      <PageHeader
+        naslov="Arhiva dokumenata"
+        opis={`${dokumenti.length} dokumenata`}
+        akcije={jeUpravackaUloga() ? (
           <button onClick={() => setShowUpload(true)}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+            className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
             + Novi dokument
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {/* Filteri */}
       <div className="bg-[#242428] border border-[#333338] rounded-xl p-4 mb-4">

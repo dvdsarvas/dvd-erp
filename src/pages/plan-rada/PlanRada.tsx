@@ -3,6 +3,7 @@ import { dohvatiAktivnosti, kreirajAktivnost, azurirajAktivnost, obrisiAktivnost
 import type { Aktivnost } from '@/lib/supabase/queries/plan-rada'
 import { useAuthStore } from '@/store/auth.store'
 import { generirajPlanRada } from '@/lib/supabase/queries/predlosci'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const tekucaGodina = new Date().getFullYear()
 
@@ -107,34 +108,30 @@ export function PlanRada() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Plan rada {godina}</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {zavrseno}/{ukupno} aktivnosti završeno ({postotak}%)
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        naslov={`Plan rada ${godina}`}
+        opis={`${zavrseno}/${ukupno} aktivnosti završeno (${postotak}%)`}
+        akcije={<div className="flex items-center gap-2">
           <select value={godina} onChange={e => setGodina(Number(e.target.value))}
-            className="px-3 py-2 border border-[#333338] rounded-lg text-sm bg-[#242428]">
+            className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             {[tekucaGodina + 1, tekucaGodina, tekucaGodina - 1, tekucaGodina - 2].map(g =>
               <option key={g} value={g}>{g}</option>
             )}
           </select>
           {jeUpravackaUloga() && aktivnosti.length === 0 && (
             <button onClick={handleGeneriraj}
-              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--success)' }}>
               Generiraj iz predložaka
             </button>
           )}
           {jeUpravackaUloga() && (
             <button onClick={() => { setShowForma(true); setEditId(null); setForma({ naziv: '', kategorija: KATEGORIJE[0], rok: '', odgovoran: '', napomena: '' }) }}
-              className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
               + Nova aktivnost
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Progress bar */}
       <div className="bg-[#242428] border border-[#333338] rounded-xl p-4 mb-4">

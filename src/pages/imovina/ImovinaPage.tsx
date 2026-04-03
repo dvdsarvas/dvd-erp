@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dohvatiImovinu, kreirajImovinu, azurirajImovinu, obrisiImovinu } from '@/lib/supabase/queries/imovina'
 import type { Imovina, ImovinaInsert } from '@/lib/supabase/queries/imovina'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const VRSTE = ['vozilo', 'oprema', 'objekt', 'ostalo']
 const STATUSI = ['u_uporabi', 'servis', 'neispravno', 'otpisano']
@@ -108,24 +109,22 @@ export function ImovinaPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Imovina i vozila</h1>
-          <p className="text-sm text-[#999] mt-0.5">{imovina.length} stavki</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        naslov="Imovina i vozila"
+        opis={`${imovina.length} stavki`}
+        akcije={<div className="flex items-center gap-2">
           <select value={filterVrsta} onChange={e => setFilterVrsta(e.target.value)}
-            className="px-3 py-2 border border-[#333338] rounded-lg text-sm bg-[#242428]">
+            className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             <option value="">Sve vrste</option>
             {VRSTE.map(v => <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>)}
           </select>
           {jeUpravackaUloga() && (
-            <button onClick={() => otvoriFormu()} className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+            <button onClick={() => otvoriFormu()} className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
               + Nova stavka
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       {/* Forma za dodavanje/uređivanje */}
       {showForma && (

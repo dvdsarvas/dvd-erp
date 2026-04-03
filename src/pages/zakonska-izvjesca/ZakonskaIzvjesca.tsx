@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dohvatiIzvjesca, azurirajIzvjesce, generirajObvezeZaGodinu } from '@/lib/supabase/queries/zakonska-izvjesca'
 import type { Izvjesce } from '@/lib/supabase/queries/zakonska-izvjesca'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const tekucaGodina = new Date().getFullYear()
 
@@ -45,28 +46,24 @@ export function ZakonskaIzvjesca() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Zakonska izvješća {godina}</h1>
-          <p className="text-sm text-[#999] mt-0.5">
-            {predana} predano · {otvorena} otvoreno
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        naslov={`Zakonska izvješća ${godina}`}
+        opis={`${predana} predano · ${otvorena} otvoreno`}
+        akcije={<div className="flex items-center gap-2">
           <select value={godina} onChange={e => setGodina(Number(e.target.value))}
-            className="px-3 py-2 border border-[#333338] rounded-lg text-sm bg-[#242428]">
+            className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             {[tekucaGodina + 1, tekucaGodina, tekucaGodina - 1, tekucaGodina - 2].map(g =>
               <option key={g} value={g}>{g}</option>
             )}
           </select>
           {!loading && izvjesca.length === 0 && jeUpravackaUloga() && (
             <button onClick={handleGeneriraj}
-              className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+              className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--success)' }}>
               Generiraj obveze
             </button>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="bg-[#242428] border border-[#333338] rounded-xl overflow-hidden">
         {loading ? (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { dohvatiNabave, kreirajNabavu, azurirajNabavu } from '@/lib/supabase/queries/nabava'
 import type { Nabava as NabavaType } from '@/lib/supabase/queries/nabava'
 import { useAuthStore } from '@/store/auth.store'
+import { PageHeader } from '@/components/shared/PageHeader'
 
 const STATUSI = [
   { value: 'zahtjev', label: 'Zahtjev', boja: 'bg-blue-900/25 text-blue-400' },
@@ -51,18 +52,16 @@ export function NabavaPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-medium text-white">Nabava</h1>
-          <p className="text-sm text-[#999] mt-0.5">{nabave.length} zahtjeva</p>
-        </div>
-        {(jeUpravackaUloga() || jeFinancijskaUloga()) && (
+      <PageHeader
+        naslov="Nabava"
+        opis={`${nabave.length} zahtjeva`}
+        akcije={(jeUpravackaUloga() || jeFinancijskaUloga()) ? (
           <button onClick={() => setShowForma(true)}
-            className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700">
+            className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
             + Novi zahtjev
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {showForma && (
         <div className="bg-[#242428] border border-[#333338] rounded-xl p-4 mb-4">

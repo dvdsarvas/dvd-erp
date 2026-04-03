@@ -1,3 +1,6 @@
+import { motion } from 'framer-motion'
+import { fadeUp } from '@/lib/animations'
+
 interface PageHeaderProps {
   naslov: string
   opis?: string
@@ -6,12 +9,23 @@ interface PageHeaderProps {
 
 export function PageHeader({ naslov, opis, akcije }: PageHeaderProps) {
   return (
-    <div className="flex items-center justify-between mb-6">
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      className="flex items-center justify-between mb-6"
+    >
       <div>
-        <h1 className="text-xl font-bold text-white">{naslov}</h1>
-        {opis && <p className="text-sm text-[#777] mt-0.5">{opis}</p>}
+        <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+          {naslov}
+        </h1>
+        {opis && (
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            {opis}
+          </p>
+        )}
       </div>
       {akcije && <div className="flex items-center gap-2">{akcije}</div>}
-    </div>
+    </motion.div>
   )
 }
