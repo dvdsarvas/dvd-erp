@@ -25,7 +25,7 @@ export interface ClanFilter {
 export async function dohvatiClanove(filtri?: ClanFilter) {
   let query = supabase
     .from('clanovi')
-    .select('*')
+    .select('id, ime, prezime, kategorija, status, vatrogasno_zvanje, mobitel, oib, datum_uclanivanja')
     .order('prezime', { ascending: true })
 
   if (filtri?.kategorija) {
