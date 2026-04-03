@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'wouter'
+import { Link, useLocation } from 'wouter'
 import { dohvatiSjednice } from '@/lib/supabase/queries/sjednice'
 import type { Sjednica, VrstaSjednice } from '@/lib/supabase/queries/sjednice'
 import { useAuthStore } from '@/store/auth.store'
@@ -49,6 +49,7 @@ function SjedniceList({ vrsteFilter, naslov, novaLabel, novaPath }: SjedniceList
   const { jeUpravackaUloga } = useAuthStore()
   const [sjednice, setSjednice] = useState<Sjednica[]>([])
   const [loading, setLoading] = useState(true)
+  const [, navigate] = useLocation()
 
   useEffect(() => {
     dohvatiSjednice(vrsteFilter)
@@ -57,15 +58,32 @@ function SjedniceList({ vrsteFilter, naslov, novaLabel, novaPath }: SjedniceList
       .finally(() => setLoading(false))
   }, [])
 
+  function handleKopirajProslu() {
+    if (sjednice.length === 0) { alert('Nema prethodne sjednice za kopiranje.'); return }
+    const prosla = sjednice[0] // već sortirane po datumu desc
+    const novaDatum = new Date()
+    novaDatum.setDate(novaDatum.getDate() + 30)
+    navigate(`${novaPath}?kopiraj=${prosla.id}&datum=${novaDatum.toISOString().split('T')[0]}`)
+  }
+
   return (
     <div>
       <PageHeader
         naslov={naslov}
         opis={loading ? '...' : `${sjednice.length} sjednica`}
         akcije={jeUpravackaUloga() ? (
-          <Link href={novaPath} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--accent)' }}>
-            {novaLabel}
-          </Link>
+          <div className="flex items-center gap-2">
+            {sjednice.length > 0 && (
+              <button onClick={handleKopirajProslu}
+                className="px-3 py-2 text-xs font-medium rounded-lg transition-colors"
+                style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
+                Kopiraj prošlu
+              </button>
+            )}
+            <Link href={novaPath} className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors" style={{ background: 'var(--accent)' }}>
+              {novaLabel}
+            </Link>
+          </div>
         ) : undefined}
       />
 

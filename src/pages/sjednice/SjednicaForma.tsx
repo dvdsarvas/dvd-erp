@@ -125,6 +125,35 @@ export function SjednicaForma({ defaultVrsta }: { defaultVrsta?: VrstaSjednice }
     }
   }, [isEdit, params.id])
 
+  // Kopiranje prošle sjednice (URL param ?kopiraj=ID&datum=YYYY-MM-DD)
+  useEffect(() => {
+    if (isEdit) return
+    const searchParams = new URLSearchParams(window.location.search)
+    const kopirajId = searchParams.get('kopiraj')
+    const novaDatum = searchParams.get('datum')
+    if (!kopirajId) return
+
+    Promise.all([
+      dohvatiSjednicu(kopirajId),
+      dohvatiTocke(kopirajId),
+    ]).then(([prosla, prosleTocke]) => {
+      setForma(f => ({
+        ...f,
+        naziv: prosla.naziv.replace(/\d{4}/, String(new Date().getFullYear())),
+        vrsta: prosla.vrsta,
+        datum: novaDatum || f.datum,
+        mjesto: prosla.mjesto || f.mjesto,
+        sat_pocetka: prosla.sat_pocetka || f.sat_pocetka,
+      }))
+      // Kopiraj točke dnevnog reda
+      setTocke(prosleTocke.map(t => ({
+        ...t,
+        id: `temp-${Math.random().toString(36).slice(2)}`,
+        sjednica_id: '',
+      })))
+    }).catch(console.error)
+  }, [isEdit])
+
   function handleChange(field: keyof Forma, value: string) {
     setForma(f => ({ ...f, [field]: value }))
   }
