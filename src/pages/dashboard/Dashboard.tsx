@@ -5,6 +5,7 @@ import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/auth.store'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { dohvatiFinPlan, dohvatiStavkePlana } from '@/lib/supabase/queries/financije'
 import { dohvatiClanoveSPregledom } from '@/lib/supabase/queries/zdravlje'
 import type { ClanZdravlje } from '@/lib/supabase/queries/zdravlje'
 import { fadeUp, slideIn } from '@/lib/animations'
@@ -118,18 +119,25 @@ export function Dashboard() {
         })))
 
         // Financijski podaci
-        const { data: finPlan } = await supabase
-          .from('financijski_plan')
-          .select('prihodi_plan, rashodi_plan, prihodi_ostvareno, rashodi_ostvareno')
-          .eq('godina', danas.getFullYear())
-          .single()
-
-        if (finPlan) {
-          setFinancijskiData([
-            { naziv: 'Prihodi', plan: finPlan.prihodi_plan ?? 0, ostvareno: finPlan.prihodi_ostvareno ?? 0 },
-            { naziv: 'Rashodi', plan: finPlan.rashodi_plan ?? 0, ostvareno: finPlan.rashodi_ostvareno ?? 0 },
-          ])
-        } else {
+        try {
+          const finPlan = await dohvatiFinPlan(danas.getFullYear())
+          if (finPlan) {
+            const stavke = await dohvatiStavkePlana(finPlan.id)
+            const prihodiPlan = stavke.filter(s => s.kategorija === 'prihod').reduce((a, s) => a + (s.iznos_plan || 0), 0)
+            const prihodiOstvareno = stavke.filter(s => s.kategorija === 'prihod').reduce((a, s) => a + (s.iznos_ostvareno || 0), 0)
+            const rashodiPlan = stavke.filter(s => s.kategorija === 'rashod').reduce((a, s) => a + (s.iznos_plan || 0), 0)
+            const rashodiOstvareno = stavke.filter(s => s.kategorija === 'rashod').reduce((a, s) => a + (s.iznos_ostvareno || 0), 0)
+            setFinancijskiData([
+              { naziv: 'Prihodi', plan: prihodiPlan, ostvareno: prihodiOstvareno },
+              { naziv: 'Rashodi', plan: rashodiPlan, ostvareno: rashodiOstvareno },
+            ])
+          } else {
+            setFinancijskiData([
+              { naziv: 'Prihodi', plan: 0, ostvareno: 0 },
+              { naziv: 'Rashodi', plan: 0, ostvareno: 0 },
+            ])
+          }
+        } catch {
           setFinancijskiData([
             { naziv: 'Prihodi', plan: 0, ostvareno: 0 },
             { naziv: 'Rashodi', plan: 0, ostvareno: 0 },
@@ -254,7 +262,7 @@ export function Dashboard() {
               <XAxis dataKey="naziv" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip
-                formatter={(v: number) => [`${v.toLocaleString('hr-HR')} EUR`]}
+                formatter={(v) => [`${Number(v).toLocaleString('hr-HR')} EUR`]}
                 contentStyle={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-accent)', borderRadius: 8, color: 'var(--text-primary)' }}
               />
               <Bar dataKey="plan" fill="var(--accent)" opacity={0.5} radius={[4,4,0,0]} name="Plan" />
