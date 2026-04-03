@@ -5,7 +5,7 @@ import {
 } from 'docx'
 import { supabase } from '@/lib/supabase/client'
 import { dohvatiOrganizaciju, dohvatiFunkcionere } from '@/lib/supabase/queries/organizacija'
-import type { DVDOrganizacija, TrenutniFlunkcioneri } from '@/lib/supabase/queries/organizacija'
+import type { DVDOrganizacija } from '@/lib/supabase/queries/organizacija'
 import { dohvatiFinPlan, dohvatiStavkePlana } from '@/lib/supabase/queries/financije'
 import { dohvatiClanove } from '@/lib/supabase/queries/clanovi'
 
@@ -238,7 +238,6 @@ async function generirajFinancijskoIzvjesce(
   const ukRashodiPlan = rashodi.reduce((a: number, s: any) => a + (s.iznos_plan || 0), 0)
   const ukRashodiOst = rashodi.reduce((a: number, s: any) => a + (s.iznos_ostvareno || 0), 0)
 
-  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' }
   const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' }
   const borders = { top: border, bottom: border, left: border, right: border }
 
