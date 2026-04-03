@@ -19,6 +19,7 @@ import { ImovinaPage } from '@/pages/imovina/ImovinaPage'
 import { VatrogasnaPage } from '@/pages/vatrogasna/VatrogasnaPage'
 import { ArhivaPage } from '@/pages/arhiva/ArhivaPage'
 import { RacuniPage } from '@/pages/racuni/RacuniPage'
+import { BankPage } from '@/pages/racuni/BankPage'
 import { PostavkePage } from '@/pages/administracija/PostavkePage'
 import { VatronetExport } from '@/pages/administracija/VatronetExport'
 
@@ -75,6 +76,7 @@ export default function App() {
         <Route path="/zakonska-izvjesca" component={ZakonskaIzvjesca} />
         <Route path="/nabava" component={NabavaPage} />
         <Route path="/racuni" component={RacuniPage} />
+        <Route path="/racuni/bank" component={BankPage} />
         <Route path="/imovina" component={ImovinaPage} />
         <Route path="/vatrogasna" component={VatrogasnaPage} />
         <Route path="/arhiva" component={ArhivaPage} />

@@ -26,6 +26,7 @@ const NAV: NavItem[] = [
   { path: '/plan-rada',               label: 'Plan rada',         section: 'Planovi' },
   { path: '/financije',               label: 'Financijski plan',  section: 'Planovi' },
   { path: '/racuni',                  label: 'Računi',            section: 'Financije' },
+  { path: '/racuni/bank',             label: 'Izvadak banke',    section: 'Financije' },
   { path: '/zakonska-izvjesca',       label: 'Zakonska izvješća', section: 'Obveze' },
   { path: '/nabava',                  label: 'Nabava',            section: 'Obveze' },
   { path: '/vatrogasna',              label: 'Vatrogasna djel.',  section: 'Vatrogastvo' },
