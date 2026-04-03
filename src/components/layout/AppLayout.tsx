@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/auth.store'
 import { useNotificationsStore } from '@/store/notifications.store'
 import { signOut } from '@/lib/supabase/auth'
+import { useDVDStore } from '@/store/dvd.store'
 import { slideIn } from '@/lib/animations'
 
 interface NavItem {
@@ -51,6 +52,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 function Sidebar({ open }: { open: boolean }) {
   const [location] = useLocation()
   const { alarmi, ucitajAlarme } = useNotificationsStore()
+  const { organizacija } = useDVDStore()
   let prevSection = ''
 
   useEffect(() => {
@@ -81,7 +83,7 @@ function Sidebar({ open }: { open: boolean }) {
             style={{ filter: 'drop-shadow(0 0 8px var(--accent-glow))' }}
           />
           <div className="min-w-0">
-            <div className="text-[13px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>DVD Sarvaš</div>
+            <div className="text-[13px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>{organizacija?.naziv_kratki ?? 'DVD Sarvaš'}</div>
             <div className="text-[9px] uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--accent)' }}>ERP SUSTAV</div>
           </div>
         </div>
@@ -156,6 +158,7 @@ function UserBlock() {
 
 function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
   const { neprocitano } = useNotificationsStore()
+  const { organizacija } = useDVDStore()
 
   return (
     <header className="h-12 border-b flex items-center px-5 gap-4 flex-shrink-0" style={{ background: 'var(--bg-base)', borderColor: 'var(--border)' }}>
@@ -163,7 +166,7 @@ function Topbar({ onMenuClick }: { onMenuClick: () => void }) {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
       </button>
       <div className="text-[11px] uppercase tracking-widest font-medium flex-1" style={{ color: 'var(--text-secondary)' }}>
-        ERP &rsaquo; <span style={{ color: 'var(--text-secondary)' }}>DVD Sarvaš</span>
+        ERP &rsaquo; <span style={{ color: 'var(--text-secondary)' }}>{organizacija?.naziv_kratki ?? 'DVD ERP'}</span>
       </div>
       {/* Notification bell */}
       <Link href="/zakonska-izvjesca" className="relative transition-colors hover:opacity-80" style={{ color: 'var(--text-muted)' }}>
