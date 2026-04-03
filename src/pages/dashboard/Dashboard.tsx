@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'wouter'
+import { motion } from 'framer-motion'
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/auth.store'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { dohvatiClanoveSPregledom } from '@/lib/supabase/queries/zdravlje'
 import type { ClanZdravlje } from '@/lib/supabase/queries/zdravlje'
+import { fadeUp, slideIn } from '@/lib/animations'
 
 interface Stats {
   aktivnih_clanova: number
@@ -23,6 +26,36 @@ interface Alarm {
   hitnost: 'crveno' | 'narancasto' | 'zuto'
 }
 
+interface MjesecData {
+  mjesec: string
+  sjednice: number
+  intervencije: number
+}
+
+interface FinData {
+  naziv: string
+  plan: number
+  ostvareno: number
+}
+
+function useAnimatedCounter(target: number, duration = 1000) {
+  const [value, setValue] = useState(0)
+  useEffect(() => {
+    if (!target) return
+    let current = 0
+    const increment = target / (duration / 16)
+    const timer = setInterval(() => {
+      current += increment
+      if (current >= target) { setValue(target); clearInterval(timer) }
+      else setValue(Math.floor(current))
+    }, 16)
+    return () => clearInterval(timer)
+  }, [target, duration])
+  return value
+}
+
+const MJESECI = ['Sij', 'Velj', 'Ožu', 'Tra', 'Svi', 'Lip', 'Srp', 'Kol', 'Ruj', 'Lis', 'Stu', 'Pro']
+
 export function Dashboard() {
   const { korisnik } = useAuthStore()
   const [stats, setStats] = useState<Stats | null>(null)
@@ -30,11 +63,17 @@ export function Dashboard() {
   const [, setZdravljeAlarmi] = useState<ClanZdravlje[]>([])
   const [recentSjednice, setRecentSjednice] = useState<{ id: string; naziv: string; datum: string; status: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [aktivnostData, setAktivnostData] = useState<MjesecData[]>([])
+  const [financijskiData, setFinancijskiData] = useState<FinData[]>([])
 
   useEffect(() => {
     async function ucitaj() {
       try {
         const danas = new Date()
+        const sixMonthsAgo = new Date()
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+        const sixMonthsAgoStr = sixMonthsAgo.toISOString().split('T')[0]
+
         const [clanovi, izvjesca, sjednice, racuniData] = await Promise.all([
           supabase.from('clanovi').select('kategorija', { count: 'exact' }).eq('status', 'aktivan'),
           supabase.from('zakonska_izvjesca').select('id', { count: 'exact' }).in('status', ['nije_predano', 'u_pripremi']),
@@ -49,6 +88,53 @@ export function Dashboard() {
           nadolazecih_sjednica: sjednice.count ?? 0,
           neplacenih_racuna: racuniData.data?.length ?? 0,
         })
+
+        // Aktivnost po mjesecima
+        const [sjedniceMonth, intervencijeMonth] = await Promise.all([
+          supabase.from('sjednice').select('datum').gte('datum', sixMonthsAgoStr),
+          supabase.from('intervencije').select('datum_intervencije').gte('datum_intervencije', sixMonthsAgoStr),
+        ])
+
+        const monthMap: Record<string, { sjednice: number; intervencije: number }> = {}
+        for (let i = 5; i >= 0; i--) {
+          const d = new Date()
+          d.setMonth(d.getMonth() - i)
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+          monthMap[key] = { sjednice: 0, intervencije: 0 }
+        }
+
+        sjedniceMonth.data?.forEach(s => {
+          const key = s.datum?.substring(0, 7)
+          if (key && monthMap[key]) monthMap[key].sjednice++
+        })
+        intervencijeMonth.data?.forEach(i => {
+          const key = (i as any).datum_intervencije?.substring(0, 7)
+          if (key && monthMap[key]) monthMap[key].intervencije++
+        })
+
+        setAktivnostData(Object.entries(monthMap).map(([key, val]) => ({
+          mjesec: MJESECI[parseInt(key.split('-')[1]) - 1],
+          ...val,
+        })))
+
+        // Financijski podaci
+        const { data: finPlan } = await supabase
+          .from('financijski_plan')
+          .select('prihodi_plan, rashodi_plan, prihodi_ostvareno, rashodi_ostvareno')
+          .eq('godina', danas.getFullYear())
+          .single()
+
+        if (finPlan) {
+          setFinancijskiData([
+            { naziv: 'Prihodi', plan: finPlan.prihodi_plan ?? 0, ostvareno: finPlan.prihodi_ostvareno ?? 0 },
+            { naziv: 'Rashodi', plan: finPlan.rashodi_plan ?? 0, ostvareno: finPlan.rashodi_ostvareno ?? 0 },
+          ])
+        } else {
+          setFinancijskiData([
+            { naziv: 'Prihodi', plan: 0, ostvareno: 0 },
+            { naziv: 'Rashodi', plan: 0, ostvareno: 0 },
+          ])
+        }
 
         // Alarmi
         const noviAlarmi: Alarm[] = []
@@ -110,72 +196,138 @@ export function Dashboard() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white">{pozdrav}, {korisnik?.ime}</h1>
-        <p className="text-sm text-[#aaa] mt-1">
+      <motion.div variants={fadeUp} initial="hidden" animate="visible" className="mb-8">
+        <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{pozdrav}, {korisnik?.ime}</h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
           DVD Sarvaš &middot; {new Date().toLocaleDateString('hr-HR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
         </p>
-      </div>
+      </motion.div>
 
       {/* KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <KPI label="Aktivnih članova" value={loading ? '...' : stats?.aktivnih_clanova ?? 0} color="red" />
-        <KPI label="Operativnih vatrog." value={loading ? '...' : stats?.operativnih_vatrogasaca ?? 0} color="green" />
-        <KPI label="Otvorenih izvješća" value={loading ? '...' : stats?.otvorenih_izvjesca ?? 0} color={stats && stats.otvorenih_izvjesca > 0 ? 'red' : 'green'} />
-        <KPI label="Neplaćenih računa" value={loading ? '...' : stats?.neplacenih_racuna ?? 0} color={stats && stats.neplacenih_racuna > 0 ? 'orange' : 'green'} />
-        <KPI label="Planiranih sjednica" value={loading ? '...' : stats?.nadolazecih_sjednica ?? 0} color="blue" />
+        <KPI label="Aktivnih članova" value={loading ? 0 : stats?.aktivnih_clanova ?? 0} color="accent" index={0} loading={loading} />
+        <KPI label="Operativnih vatrog." value={loading ? 0 : stats?.operativnih_vatrogasaca ?? 0} color="success" index={1} loading={loading} />
+        <KPI label="Otvorenih izvješća" value={loading ? 0 : stats?.otvorenih_izvjesca ?? 0} color={stats && stats.otvorenih_izvjesca > 0 ? 'danger' : 'success'} index={2} loading={loading} />
+        <KPI label="Neplaćenih računa" value={loading ? 0 : stats?.neplacenih_racuna ?? 0} color={stats && stats.neplacenih_racuna > 0 ? 'warning' : 'success'} index={3} loading={loading} />
+        <KPI label="Planiranih sjednica" value={loading ? 0 : stats?.nadolazecih_sjednica ?? 0} color="info" index={4} loading={loading} />
+      </div>
+
+      {/* Grafovi */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="visible" custom={5}
+          className="lg:col-span-3 rounded-xl p-5 border"
+          style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+        >
+          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Aktivnost (zadnjih 6 mj.)</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <AreaChart data={aktivnostData}>
+              <defs>
+                <linearGradient id="gradSjednice" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradIntervencije" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--info)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--info)" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="mjesec" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-accent)', borderRadius: 8, color: 'var(--text-primary)' }} />
+              <Area type="monotone" dataKey="sjednice" stroke="var(--accent)" fill="url(#gradSjednice)" strokeWidth={2} name="Sjednice" />
+              <Area type="monotone" dataKey="intervencije" stroke="var(--info)" fill="url(#gradIntervencije)" strokeWidth={2} name="Intervencije" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </motion.div>
+
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="visible" custom={6}
+          className="lg:col-span-2 rounded-xl p-5 border"
+          style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+        >
+          <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Financijski plan vs ostvareno</h3>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={financijskiData} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+              <XAxis dataKey="naziv" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tickFormatter={v => `${(v/1000).toFixed(0)}k`} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip
+                formatter={(v: number) => [`${v.toLocaleString('hr-HR')} EUR`]}
+                contentStyle={{ background: 'var(--bg-overlay)', border: '1px solid var(--border-accent)', borderRadius: 8, color: 'var(--text-primary)' }}
+              />
+              <Bar dataKey="plan" fill="var(--accent)" opacity={0.5} radius={[4,4,0,0]} name="Plan" />
+              <Bar dataKey="ostvareno" fill="var(--accent)" radius={[4,4,0,0]} name="Ostvareno" />
+            </BarChart>
+          </ResponsiveContainer>
+        </motion.div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Alarmi */}
-        <div className="bg-[#242428] border border-[#333338] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#333338] flex items-center justify-between">
-            <span className="text-sm font-semibold text-white">Rokovi i upozorenja</span>
-            {alarmi.length > 0 && <span className="bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{alarmi.length}</span>}
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="visible" custom={7}
+          className="rounded-xl overflow-hidden border"
+          style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+        >
+          <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Rokovi i upozorenja</span>
+            {alarmi.length > 0 && <span className="text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ background: 'var(--danger)' }}>{alarmi.length}</span>}
           </div>
-          <div className="divide-y divide-[#222]">
-            {loading ? <div className="p-5 text-sm text-[#777]">Učitavanje...</div>
-            : alarmi.length === 0 ? <div className="p-5 text-sm text-[#777]">Nema hitnih rokova.</div>
-            : alarmi.slice(0, 8).map(a => (
-              <Link key={a.id} href={a.href} className="flex items-center gap-3 px-5 py-3 hover:bg-[#2a2a2e] transition-colors">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${a.hitnost === 'crveno' ? 'bg-red-500 animate-pulse' : a.hitnost === 'narancasto' ? 'bg-orange-500/20' : 'bg-yellow-500/20'}`} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-[#ddd] truncate">{a.tekst}</div>
-                  <div className="text-[11px] text-[#777]">{new Date(a.rok).toLocaleDateString('hr-HR')}</div>
-                </div>
-                <span className={`text-[11px] font-semibold ${a.dani < 0 ? 'text-red-400' : a.dani <= 7 ? 'text-orange-400' : 'text-yellow-500'}`}>
-                  {a.dani < 0 ? `${Math.abs(a.dani)}d kasni` : a.dani === 0 ? 'Danas' : `${a.dani}d`}
-                </span>
-              </Link>
+          <div>
+            {loading ? <div className="p-5 text-sm" style={{ color: 'var(--text-muted)' }}>Učitavanje...</div>
+            : alarmi.length === 0 ? <div className="p-5 text-sm" style={{ color: 'var(--text-muted)' }}>Nema hitnih rokova.</div>
+            : alarmi.slice(0, 8).map((a, i) => (
+              <motion.div key={a.id} variants={slideIn} initial="hidden" animate="visible" custom={i}>
+                <Link href={a.href}
+                  className="flex items-center gap-3 px-5 py-3 transition-colors"
+                  style={{ borderLeft: `3px solid ${a.hitnost === 'crveno' ? 'var(--danger)' : a.hitnost === 'narancasto' ? 'var(--warning)' : 'var(--warning)'}` }}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{a.tekst}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{new Date(a.rok).toLocaleDateString('hr-HR')}</div>
+                  </div>
+                  <span className="text-[11px] font-semibold" style={{ color: a.dani < 0 ? 'var(--danger)' : a.dani <= 7 ? 'var(--warning)' : 'var(--warning)' }}>
+                    {a.dani < 0 ? `${Math.abs(a.dani)}d kasni` : a.dani === 0 ? 'Danas' : `${a.dani}d`}
+                  </span>
+                </Link>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Nedavne sjednice */}
-        <div className="bg-[#242428] border border-[#333338] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[#333338] flex items-center justify-between">
-            <span className="text-sm font-semibold text-white">Nedavne sjednice</span>
-            <Link href="/zapisnici" className="text-[11px] text-red-400 hover:text-red-300">Sve &rarr;</Link>
+        <motion.div
+          variants={fadeUp} initial="hidden" animate="visible" custom={8}
+          className="rounded-xl overflow-hidden border"
+          style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+        >
+          <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Nedavne sjednice</span>
+            <Link href="/zapisnici" className="text-[11px]" style={{ color: 'var(--text-accent)' }}>Sve &rarr;</Link>
           </div>
-          <div className="divide-y divide-[#222]">
-            {loading ? <div className="p-5 text-sm text-[#777]">Učitavanje...</div>
-            : recentSjednice.length === 0 ? <div className="p-5 text-sm text-[#777]">Nema sjednica.</div>
-            : recentSjednice.map(s => (
-              <Link key={s.id} href={`/sjednice/${s.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-[#2a2a2e] transition-colors">
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] text-[#ddd] truncate">{s.naziv}</div>
-                  <div className="text-[11px] text-[#777]">{new Date(s.datum).toLocaleDateString('hr-HR')}</div>
-                </div>
-                <StatusBadge status={s.status} varijanta="sjednica" />
-              </Link>
+          <div>
+            {loading ? <div className="p-5 text-sm" style={{ color: 'var(--text-muted)' }}>Učitavanje...</div>
+            : recentSjednice.length === 0 ? <div className="p-5 text-sm" style={{ color: 'var(--text-muted)' }}>Nema sjednica.</div>
+            : recentSjednice.map((s, i) => (
+              <motion.div key={s.id} variants={slideIn} initial="hidden" animate="visible" custom={i}>
+                <Link href={`/sjednice/${s.id}`} className="flex items-center gap-3 px-5 py-3 transition-colors border-b" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>{s.naziv}</div>
+                    <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{new Date(s.datum).toLocaleDateString('hr-HR')}</div>
+                  </div>
+                  <StatusBadge status={s.status} varijanta="sjednica" />
+                </Link>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Brze akcije */}
-      <div>
-        <h2 className="text-sm font-bold text-white mb-3">Brze akcije</h2>
+      <motion.div variants={fadeUp} initial="hidden" animate="visible" custom={9}>
+        <h2 className="text-sm font-bold mb-3" style={{ color: 'var(--text-primary)' }}>Brze akcije</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             { label: 'Nova sjednica UO', href: '/sjednice/upravni-odbor/nova' },
@@ -188,28 +340,42 @@ export function Dashboard() {
             { label: 'Imovina', href: '/imovina' },
           ].map(a => (
             <Link key={a.href} href={a.href}
-              className="flex items-center gap-3 p-4 bg-[#242428] border border-[#333338] rounded-xl hover:border-red-900/50 hover:bg-[#2a2428] transition-all">
-              <span className="text-[13px] font-medium text-[#bbb]">{a.label}</span>
+              className="flex items-center gap-3 p-4 rounded-xl transition-all border"
+              style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+            >
+              <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>{a.label}</span>
             </Link>
           ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
 
-function KPI({ label, value, color }: { label: string; value: number | string; color: string }) {
-  const colors: Record<string, string> = {
-    red: 'text-red-400', green: 'text-emerald-400', blue: 'text-blue-400', orange: 'text-orange-400',
+function KPI({ label, value, color, index, loading }: { label: string; value: number; color: string; index: number; loading: boolean }) {
+  const animatedValue = useAnimatedCounter(value)
+
+  const colorMap: Record<string, string> = {
+    accent: 'var(--accent)',
+    success: 'var(--success)',
+    danger: 'var(--danger)',
+    warning: 'var(--warning)',
+    info: 'var(--info)',
   }
-  const bgColors: Record<string, string> = {
-    red: 'bg-red-600/10', green: 'bg-emerald-600/10', blue: 'bg-blue-600/10', orange: 'bg-orange-600/10',
-  }
+
+  const c = colorMap[color] || colorMap.accent
+
   return (
-    <div className={`${bgColors[color] || bgColors.red} border border-[#333338] rounded-xl p-4`}>
-      <div className={`text-3xl font-bold ${colors[color] || colors.red}`}>{value}</div>
-      <div className="text-[11px] text-[#aaa] mt-1 uppercase tracking-wider">{label}</div>
-    </div>
+    <motion.div
+      variants={fadeUp}
+      initial="hidden"
+      animate="visible"
+      custom={index}
+      className="rounded-xl p-4 border"
+      style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}
+    >
+      <div className="text-3xl font-bold" style={{ color: c }}>{loading ? '...' : animatedValue}</div>
+      <div className="text-[11px] mt-1 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>{label}</div>
+    </motion.div>
   )
 }
-
