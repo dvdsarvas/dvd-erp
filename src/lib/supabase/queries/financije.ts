@@ -1,0 +1,137 @@
+import { supabase } from '../client'
+import type { Database } from '@/types/database.types'
+
+type FinPlan = Database['public']['Tables']['financijski_planovi']['Row']
+type FinStavka = Database['public']['Tables']['financijski_plan_stavke']['Row']
+type FinStavkaUpdate = Database['public']['Tables']['financijski_plan_stavke']['Update']
+type Racun = Database['public']['Tables']['racuni']['Row']
+type RacunInsert = Database['public']['Tables']['racuni']['Insert']
+type RacunUpdate = Database['public']['Tables']['racuni']['Update']
+
+export type { FinPlan, FinStavka, Racun, RacunInsert, RacunUpdate }
+
+// ── Financijski plan ───────────────────────────────────────
+
+export async function dohvatiFinPlan(godina: number) {
+  const { data, error } = await supabase
+    .from('financijski_planovi')
+    .select('*')
+    .eq('godina', godina)
+    .maybeSingle()
+  if (error) throw error
+  return data as FinPlan | null
+}
+
+export async function dohvatiStavkePlana(planId: string) {
+  const { data, error } = await supabase
+    .from('financijski_plan_stavke')
+    .select('*')
+    .eq('plan_id', planId)
+    .order('redni_broj')
+  if (error) throw error
+  return data as FinStavka[]
+}
+
+export async function azurirajStavku(id: string, podaci: FinStavkaUpdate) {
+  const { data, error } = await supabase
+    .from('financijski_plan_stavke')
+    .update(podaci)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data as FinStavka
+}
+
+// ── Računi ─────────────────────────────────────────────────
+
+export async function dohvatiRacune(godina?: number, status?: string) {
+  let query = supabase
+    .from('racuni')
+    .select('*')
+    .order('datum_racuna', { ascending: false })
+
+  if (godina) {
+    query = query.gte('datum_racuna', `${godina}-01-01`).lte('datum_racuna', `${godina}-12-31`)
+  }
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data as Racun[]
+}
+
+export async function kreirajRacun(racun: RacunInsert) {
+  const { data, error } = await supabase.from('racuni').insert(racun).select().single()
+  if (error) throw error
+  return data as Racun
+}
+
+export async function azurirajRacun(id: string, podaci: RacunUpdate) {
+  const { data, error } = await supabase.from('racuni').update(podaci).eq('id', id).select().single()
+  if (error) throw error
+  return data as Racun
+}
+
+/**
+ * Likvidacija računa — predsjednik potvrđuje račun.
+ * Nakon likvidacije račun prelazi u status 'odobreno'.
+ */
+export async function likvidirajRacun(id: string, korisnikId: string) {
+  return azurirajRacun(id, {
+    status: 'odobreno',
+    odobrio_id: korisnikId,
+    datum_odobravanja: new Date().toISOString(),
+  })
+}
+
+/**
+ * Označi račun kao plaćen.
+ */
+export async function platiRacun(id: string, datumPlacanja?: string) {
+  return azurirajRacun(id, {
+    status: 'placeno',
+    datum_placanja: datumPlacanja || new Date().toISOString().split('T')[0],
+  })
+}
+
+// ── Upload dokumenta za račun ──────────────────────────────
+
+export async function uploadRacunDokument(racunId: string, file: File): Promise<string> {
+  const ext = file.name.split('.').pop() || 'pdf'
+  const path = `racuni/${racunId}/${Date.now()}.${ext}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('dokumenti')
+    .upload(path, file, { contentType: file.type })
+
+  if (uploadError) throw uploadError
+
+  // Kreiraj zapis u dokumenti tablici
+  await supabase.from('dokumenti').insert({
+    naziv: file.name,
+    storage_path: path,
+    modul: 'financije',
+    racun_id: racunId,
+    vrsta: ext === 'pdf' ? 'pdf' : 'ostalo',
+  })
+
+  return path
+}
+
+export async function dohvatiDokumenteRacuna(racunId: string) {
+  const { data, error } = await supabase
+    .from('dokumenti')
+    .select('id, naziv, storage_path, created_at')
+    .eq('racun_id', racunId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data
+}
+
+export async function dohvatiDokumentUrl(path: string): Promise<string> {
+  const { data } = await supabase.storage.from('dokumenti').createSignedUrl(path, 3600) // 1h
+  return data?.signedUrl || ''
+}

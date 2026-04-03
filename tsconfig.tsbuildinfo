@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/components/layout/applayout.tsx","./src/lib/supabase/auth.ts","./src/lib/supabase/client.ts","./src/pages/auth/login.tsx","./src/pages/dashboard/dashboard.tsx","./src/store/auth.store.ts","./src/types/database.types.ts"],"errors":true,"version":"5.9.3"}
