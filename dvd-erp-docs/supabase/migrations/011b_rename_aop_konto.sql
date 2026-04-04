@@ -130,22 +130,22 @@ CREATE TRIGGER racun_sync_trigger
 CREATE OR REPLACE VIEW knjiga_ulaznih_racuna AS
 SELECT
   ROW_NUMBER() OVER (
-    PARTITION BY EXTRACT(YEAR FROM datum_racuna)
-    ORDER BY datum_racuna, created_at
+    PARTITION BY EXTRACT(YEAR FROM r.datum_racuna)
+    ORDER BY r.datum_racuna, r.created_at
   )::int                               AS redni_broj,
-  EXTRACT(YEAR FROM datum_racuna)::int AS godina,
-  interni_broj,
-  datum_racuna,
-  naziv_stranke,
-  opis,
-  iznos_ukupno,
-  status,
-  racunski_konto,
+  EXTRACT(YEAR FROM r.datum_racuna)::int AS godina,
+  r.interni_broj,
+  r.datum_racuna,
+  r.naziv_stranke,
+  r.opis,
+  r.iznos_ukupno,
+  r.status,
+  r.racunski_konto,
   ps.naziv_stavke                      AS kategorija_plana,
-  datum_placanja,
+  r.datum_placanja,
   lik.ime || ' ' || lik.prezime        AS likvidirao_ime,
-  datum_odobravanja                    AS datum_likvidacije,
-  created_at
+  r.datum_odobravanja                  AS datum_likvidacije,
+  r.created_at
 FROM racuni r
 LEFT JOIN financijski_plan_stavke ps ON ps.id = r.plan_stavka_id
 LEFT JOIN korisnici lik ON lik.id = r.odobrio_id
