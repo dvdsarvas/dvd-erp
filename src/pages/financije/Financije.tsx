@@ -17,6 +17,8 @@ export function Financije() {
   const [godina, setGodina] = useState(tekucaGodina)
   const [editId, setEditId] = useState<string | null>(null)
   const [editIznos, setEditIznos] = useState('')
+  const [editKontoId, setEditKontoId] = useState<string | null>(null)
+  const [editKonto, setEditKonto] = useState('')
 
   useEffect(() => { ucitaj() }, [godina])
 
@@ -53,6 +55,11 @@ export function Financije() {
     if (isNaN(iznos)) return
     await azurirajStavku(id, { iznos_ostvareno: iznos })
     setEditId(null); await ucitaj()
+  }
+
+  async function handleSpremiKonto(id: string) {
+    await azurirajStavku(id, { racunski_plan_konto: editKonto || null } as any)
+    setEditKontoId(null); await ucitaj()
   }
 
   const ukupnoPlan = stavke.filter(s => s.kategorija === 'prihod').reduce((a, s) => a + (s.iznos_plan || 0), 0)
@@ -103,7 +110,23 @@ export function Financije() {
                   const isPrihod = s.kategorija === 'prihod'
                   return (
                     <tr key={s.id} className="border-b border-[#2a2a2e] hover:bg-[#1e1e22]">
-                      <td className="px-4 py-2 text-xs text-[#777] font-mono">{s.racunski_plan_konto || '—'}</td>
+                      <td className="px-4 py-2 text-xs font-mono">
+                        {editKontoId === s.id ? (
+                          <div className="flex gap-1">
+                            <input type="text" value={editKonto} onChange={e => setEditKonto(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') handleSpremiKonto(s.id); if (e.key === 'Escape') setEditKontoId(null) }}
+                              className="w-16 px-1 py-0.5 border border-[#333338] rounded text-xs font-mono" autoFocus placeholder="4231" />
+                            <button onClick={() => handleSpremiKonto(s.id)} className="text-xs text-green-400">&#10003;</button>
+                            <button onClick={() => setEditKontoId(null)} className="text-xs text-[#777]">&#10005;</button>
+                          </div>
+                        ) : (
+                          <span
+                            onClick={() => { if (jeFinancijskaUloga()) { setEditKontoId(s.id); setEditKonto(s.racunski_plan_konto || '') } }}
+                            className={`${jeFinancijskaUloga() ? 'cursor-pointer hover:text-blue-400' : ''} text-[#777]`}>
+                            {s.racunski_plan_konto || '—'}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-2 text-white">{s.naziv_stavke}</td>
                       <td className="px-4 py-2 text-right text-[#bbb]">{fEUR(pl)}</td>
                       <td className="px-4 py-2 text-right">
