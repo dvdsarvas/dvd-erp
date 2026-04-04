@@ -6,11 +6,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const API_URLS: Record<string, string> = {
   eposlovanje: 'https://eracun.eposlovanje.hr/apis/v2',
-  moj_eracun:  'https://api.moj-eracun.hr/apis/v2',
+  moj_eracun:  'https://moj-eracun.hr/apis/v2',
 }
 
+const SOFTWARE_ID = 'DVD-ERP-001'
+
 serve(async (req) => {
-  // CORS headers
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -39,11 +40,16 @@ serve(async (req) => {
       )
     }
 
-    // Pozovi queryInbox za test veze
+    // POST /apis/v2/queryInbox s PascalCase body-jem
     const resp = await fetch(`${baseUrl}/queryInbox`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, companyId }),
+      body: JSON.stringify({
+        Username: username,
+        Password: password,
+        CompanyId: companyId,
+        SoftwareId: SOFTWARE_ID,
+      }),
     })
 
     if (!resp.ok) {
@@ -58,7 +64,8 @@ serve(async (req) => {
     }
 
     const data = await resp.json()
-    const dokumenti = data.documents ?? data.Documents ?? data.items ?? []
+    // Dokumenti u odgovoru — probaj vise varijanti
+    const dokumenti = data.Documents ?? data.documents ?? data.items ?? []
 
     return new Response(
       JSON.stringify({

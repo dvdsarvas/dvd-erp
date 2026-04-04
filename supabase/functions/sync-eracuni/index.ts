@@ -10,8 +10,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const API_URLS: Record<string, string> = {
   eposlovanje: 'https://eracun.eposlovanje.hr/apis/v2',
-  moj_eracun:  'https://api.moj-eracun.hr/apis/v2',
+  moj_eracun:  'https://moj-eracun.hr/apis/v2',
 }
+
+const SOFTWARE_ID = 'DVD-ERP-001'
+const STATUS_RECEIVING_CONFIRMED = 4
 
 serve(async () => {
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -34,13 +37,19 @@ serve(async () => {
       return new Response(JSON.stringify({ ok: false, greska: 'Nepodržani posrednik' }))
     }
 
-    const auth = { username: config.api_username, password: config.api_password, companyId: config.company_id }
+    // PascalCase auth payload za mer/ePoslovanje API
+    const authBody = {
+      Username: config.api_username,
+      Password: config.api_password,
+      CompanyId: config.company_id,
+      SoftwareId: SOFTWARE_ID,
+    }
 
-    // Dohvati inbox
+    // 1. Dohvati inbox — POST /apis/v2/queryInbox
     const inboxResp = await fetch(`${baseUrl}/queryInbox`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...auth, documentStatus: 99 }),
+      body: JSON.stringify(authBody),
     })
 
     if (!inboxResp.ok) {
@@ -52,39 +61,64 @@ serve(async () => {
     }
 
     const inbox = await inboxResp.json()
-    const dokumenti = inbox.documents ?? inbox.Documents ?? inbox.items ?? []
+    const dokumenti = inbox.Documents ?? inbox.documents ?? inbox.items ?? []
     log.push(`Inbox: ${dokumenti.length} dokumenata`)
 
+    // 2. Za svaki dokument — preuzmi, spremi, potvrdi
     for (const dok of dokumenti) {
-      const docId = String(dok.documentId ?? dok.DocumentId ?? dok.id)
+      // ElectronicID je integer (prema Postman kolekciji)
+      const electronicId: number = dok.ElectronicID ?? dok.ElectronicId ?? dok.electronicId
+      if (!electronicId) {
+        log.push(`Preskačem dokument bez ElectronicID`)
+        continue
+      }
+      const docIdStr = String(electronicId)
 
       // Provjeri duplikat
-      const { count } = await supabase.from('racuni').select('id', { count: 'exact' }).eq('eracun_document_id', docId)
-      if (count && count > 0) { log.push(`Preskačem ${docId}`); continue }
+      const { count } = await supabase
+        .from('racuni')
+        .select('id', { count: 'exact' })
+        .eq('eracun_document_id', docIdStr)
+      if (count && count > 0) {
+        log.push(`Preskačem ${docIdStr}`)
+        continue
+      }
 
-      // Preuzmi XML
-      const docResp = await fetch(`${baseUrl}/receiveDocument/${docId}`, {
+      // Preuzmi dokument — POST /apis/v2/receive
+      const docResp = await fetch(`${baseUrl}/receive`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(auth),
+        body: JSON.stringify({ ...authBody, ElectronicID: electronicId }),
       })
-      if (!docResp.ok) { log.push(`Greška ${docId}: ${docResp.status}`); continue }
+      if (!docResp.ok) {
+        log.push(`Greška ${docIdStr}: ${docResp.status}`)
+        continue
+      }
 
       const docData = await docResp.json()
-      const encodedXml = docData.encodedXml ?? docData.xmlContent ?? docData.xml ?? ''
-      if (!encodedXml) { log.push(`Nema XML za ${docId}`); continue }
+      const encodedXml = docData.EncodedXml ?? docData.encodedXml ?? docData.xmlContent ?? docData.xml ?? ''
+      if (!encodedXml) {
+        log.push(`Nema XML za ${docIdStr}`)
+        continue
+      }
 
-      // Parsiraj
+      // Parsiraj XML
       const xmlString = atob(encodedXml)
       const podaci = parsirajXML(xmlString)
-      if (!podaci) { log.push(`Parse greška ${docId}`); continue }
+      if (!podaci) {
+        log.push(`Parse greška ${docIdStr}`)
+        continue
+      }
 
       // Generiraj interni broj
       const godina = podaci.datum_racuna.substring(0, 4)
-      const { count: brCount } = await supabase.from('racuni').select('id', { count: 'exact' }).like('interni_broj', `URA-${godina}-%`)
+      const { count: brCount } = await supabase
+        .from('racuni')
+        .select('id', { count: 'exact' })
+        .like('interni_broj', `URA-${godina}-%`)
       const intBroj = `URA-${godina}-${String((brCount ?? 0) + 1).padStart(3, '0')}`
 
-      // Spremi
+      // Spremi u bazu
       const { error: insertErr } = await supabase.from('racuni').insert({
         vrsta: 'ulazni',
         interni_broj: intBroj,
@@ -98,22 +132,29 @@ serve(async () => {
         iznos_ukupno: podaci.iznos_ukupno,
         status: 'primljeno',
         izvor: 'eracun_api',
-        eracun_document_id: docId,
+        eracun_document_id: docIdStr,
         eracun_posrednik: config.posrednik,
         eracun_xml: encodedXml,
       })
 
-      if (insertErr) { log.push(`Upis greška ${docId}: ${insertErr.message}`); continue }
+      if (insertErr) {
+        log.push(`Upis greška ${docIdStr}: ${insertErr.message}`)
+        continue
+      }
 
-      // Notificiraj ePoslovanje
-      await fetch(`${baseUrl}/notifyimport/${docId}`, {
+      // 3. Potvrdi preuzimanje — POST /apis/v2/UpdateDokumentProcessStatus
+      await fetch(`${baseUrl}/UpdateDokumentProcessStatus`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(auth),
-      }).catch(() => {})
+        body: JSON.stringify({
+          ...authBody,
+          ElectronicId: electronicId,
+          StatusId: STATUS_RECEIVING_CONFIRMED,
+        }),
+      }).catch((e) => log.push(`Status update failed za ${docIdStr}: ${e}`))
 
       uvezeno++
-      log.push(`✓ ${podaci.naziv_stranke} — ${podaci.iznos_ukupno} EUR`)
+      log.push(`OK ${podaci.naziv_stranke} — ${podaci.iznos_ukupno} EUR`)
     }
 
     // Ažuriraj sync status
@@ -138,16 +179,28 @@ function parsirajXML(xml: string) {
     const FINA = 'http://fina.hr/eracun/erp/OutgoingInvoicesData/v3.2'
     const CBC = 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2'
     const CAC = 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2'
-    const get = (tag: string, ns: string) => doc.getElementsByTagNameNS(ns, tag)[0]?.textContent?.trim() ?? ''
+    const get = (tag: string, ns: string, context?: Element) =>
+      (context ?? doc).getElementsByTagNameNS(ns, tag)[0]?.textContent?.trim() ?? ''
 
     const payable = parseFloat(get('PayableAmount', CBC) || '0')
     const issueDate = get('IssueDate', CBC)
     if (!issueDate || payable <= 0) return null
 
+    // Dobavljač iz AccountingSupplierParty bloka
+    const supplierParty = doc.getElementsByTagNameNS(CAC, 'AccountingSupplierParty')[0]
+    let naziv = ''
+    let oib = ''
+    if (supplierParty) {
+      naziv = get('RegistrationName', CBC, supplierParty) || get('Name', CBC, supplierParty)
+      oib = get('CompanyID', CBC, supplierParty) || get('EndpointID', CBC, supplierParty)
+    }
+    if (!oib) oib = get('SupplierID', FINA)
+    if (!naziv) naziv = `Dobavljač ${oib || 'nepoznat'}`
+
     return {
-      br_racuna: get('SupplierInvoiceID', FINA),
-      oib_stranke: get('SupplierID', FINA),
-      naziv_stranke: get('RegistrationName', CAC) || get('Name', CAC) || `Dobavljač`,
+      br_racuna: get('SupplierInvoiceID', FINA) || get('ID', CBC),
+      oib_stranke: oib,
+      naziv_stranke: naziv,
       datum_racuna: issueDate,
       datum_dospieca: get('DueDate', CBC),
       iznos_ukupno: payable,

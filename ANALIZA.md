@@ -167,6 +167,29 @@ Dashboard: https://supabase.com/dashboard/project/hhbfgznjjmgqsmxphhzf/functions
 
 ---
 
+## Ispravci mer/ePoslovanje API (4. travnja 2026.)
+
+### sync-eracuni i test-eracun-vezu
+
+Edge Functions ispravljene prema stvarnoj Postman kolekciji mojeRacun API-ja:
+
+| Sto | Staro | Novo |
+|-----|-------|------|
+| Base URL | `https://api.moj-eracun.hr/apis/v2` | `https://moj-eracun.hr/apis/v2` |
+| Auth payload | `{ username, password, companyId }` | `{ Username, Password, CompanyId, SoftwareId }` — PascalCase |
+| SoftwareId | Nedostajao | `"DVD-ERP-001"` u svim zahtjevima |
+| Dokument ID | string `documentId` | integer `ElectronicID` |
+| Preuzimanje | `GET /receiveDocument/:id` | `POST /receive` s body `{ ElectronicID }` |
+| Potvrda | `POST /notifyimport/:id` | `POST /UpdateDokumentProcessStatus` s `{ ElectronicId, StatusId: 4 }` |
+
+StatusId 4 = `RECEIVING_CONFIRMED` — javlja posredniku da smo uspjesno preuzeli i mozemo ga maknuti iz inboxa.
+
+Obje funkcije deployane:
+- `supabase functions deploy sync-eracuni` — OK
+- `supabase functions deploy test-eracun-vezu` — OK
+
+---
+
 ## Sljedeci koraci
 
 1. Provjeriti produkcijski deploy na https://dvd-erp.dvdsarvas.workers.dev
