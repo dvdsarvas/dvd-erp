@@ -3,8 +3,8 @@ import { useAuthStore } from '@/store/auth.store'
 import type { Korisnik } from '@/store/auth.store'
 import { useDVDStore } from '@/store/dvd.store'
 
-// Guard protiv duplikatnih poziva loadKorisnik
-let _loadingKorisnik = false
+// Guard — spriječi paralelne loadKorisnik pozive
+let _loadingPromise: Promise<void> | null = null
 
 // Inicijalizacija — pozvati jednom u main.tsx
 export async function initAuth() {
@@ -19,24 +19,42 @@ export async function initAuth() {
     setLoading(false)
   }
 
-  // Slušaj promjene auth stanja
+  // Slušaj promjene auth stanja (login/logout iz drugog taba itd.)
   supabase.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session?.user) {
+      // Čekaj ako je loadKorisnik već u tijeku (iz getSession gore)
+      if (_loadingPromise) await _loadingPromise
+      // Provjeri da korisnik nije već postavljen za ovog usera
+      const current = useAuthStore.getState().korisnik
+      if (current?.id === session.user.id) return
       await loadKorisnik(session.user.id)
     }
     if (event === 'SIGNED_OUT') {
       logout()
+      useDVDStore.setState({ organizacija: null, funkcioneri: null, loaded: false })
     }
   })
 }
 
 async function loadKorisnik(userId: string) {
-  if (_loadingKorisnik) return
-  _loadingKorisnik = true
+  // Ako je već u tijeku, vrati isti promise (dedup)
+  if (_loadingPromise) return _loadingPromise
+
+  _loadingPromise = _doLoadKorisnik(userId)
+  try {
+    await _loadingPromise
+  } finally {
+    _loadingPromise = null
+  }
+}
+
+async function _doLoadKorisnik(userId: string) {
+  const { setKorisnik, setLoading, logout } = useAuthStore.getState()
+
+  // Osiguraj da loading ostane true dok sve ne završi
+  setLoading(true)
 
   try {
-    const { setKorisnik, logout } = useAuthStore.getState()
-
     const { data, error } = await supabase
       .from('korisnici')
       .select('id, email, ime, prezime, uloga, aktivan')
@@ -56,11 +74,14 @@ async function loadKorisnik(userId: string) {
       return
     }
 
+    // Postavi korisnika (ovo postavlja loading: false u auth storeu)
     setKorisnik(data as Korisnik)
-    // Čekaj učitavanje podataka organizacije prije nego app renderira
+
+    // Učitaj podatke organizacije — await da app čeka
     await useDVDStore.getState().init()
-  } finally {
-    _loadingKorisnik = false
+  } catch (err) {
+    console.error('loadKorisnik greška:', err)
+    setLoading(false)
   }
 }
 

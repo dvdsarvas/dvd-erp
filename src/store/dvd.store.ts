@@ -28,6 +28,8 @@ export const useDVDStore = create<DVDStore>((set, get) => ({
       set({ organizacija: org, funkcioneri: funk, loaded: true })
     } catch (err) {
       console.error('DVD store init greška:', err)
+      // Označi kao loaded čak i na error — inače app visi na loading screenu
+      set({ loaded: true })
     } finally {
       set({ loading: false })
     }
