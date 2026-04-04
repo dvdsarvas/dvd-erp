@@ -220,3 +220,37 @@ export async function oznacPoslatoKnjigov(
     .in('id', racunIds)
   if (error) throw error
 }
+
+// ── e-Račun konfiguracija ───────────────────────────────────
+
+export interface EracunKonfiguracija {
+  id:             string
+  posrednik:      'eposlovanje' | 'moj_eracun' | 'fina'
+  api_username:   string
+  api_password:   string
+  api_key:        string
+  company_id:     string
+  aktivan:        boolean
+  zadnji_sync:    string | null
+  zadnji_sync_br: number
+  greska_zadnja:  string
+}
+
+export async function dohvatiEracunKfg(): Promise<EracunKonfiguracija | null> {
+  const { data } = await supabase
+    .from('eracun_konfiguracija' as any)
+    .select('*')
+    .single()
+  return data as unknown as EracunKonfiguracija | null
+}
+
+export async function azurirajEracunKfg(
+  id: string,
+  podaci: Partial<EracunKonfiguracija>
+): Promise<void> {
+  const { error } = await supabase
+    .from('eracun_konfiguracija' as any)
+    .update({ ...podaci, updated_at: new Date().toISOString() } as any)
+    .eq('id', id)
+  if (error) throw error
+}

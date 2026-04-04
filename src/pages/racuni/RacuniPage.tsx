@@ -10,6 +10,7 @@ import type { Racun, FinPlan, FinStavka, KnjigaUlazniRacun } from '@/lib/supabas
 import { useAuthStore } from '@/store/auth.store'
 import { supabase } from '@/lib/supabase/client'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { parsirajEracunFajl } from '@/lib/utils/eracun-parser'
 
 const tekucaGodina = new Date().getFullYear()
 
@@ -199,11 +200,26 @@ export function RacuniPage() {
             className="px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
             {[tekucaGodina, tekucaGodina - 1, tekucaGodina - 2].map(g => <option key={g} value={g}>{g}</option>)}
           </select>
-          {jeFinancijskaUloga() && (
+          {jeFinancijskaUloga() && (<>
+            <label className="px-3 py-2 text-sm font-medium rounded-lg cursor-pointer" style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
+              Uvezi XML
+              <input type="file" accept=".xml" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                const podaci = await parsirajEracunFajl(file)
+                if (!podaci) { alert('Nije moguće pročitati XML datoteku.'); return }
+                setForma(f => ({ ...f, naziv_stranke: podaci.naziv_stranke, datum_racuna: podaci.datum_racuna, iznos_ukupno: String(podaci.iznos_ukupno), opis: `e-Račun ${podaci.br_racuna}`, plan_stavka_id: '', racunski_konto: '' }))
+                setShowForma(true)
+                if (podaci.naziv_stranke) {
+                  const kat = await dohvatiKategorijuDobavljaca(podaci.naziv_stranke)
+                  if (kat?.plan_stavka_id) setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '' }))
+                }
+              }} />
+            </label>
             <button onClick={() => setShowForma(true)} className="px-4 py-2 text-white text-sm font-medium rounded-lg" style={{ background: 'var(--accent)' }}>
               + Novi račun
             </button>
-          )}
+          </>)}
         </div>}
       />
 
