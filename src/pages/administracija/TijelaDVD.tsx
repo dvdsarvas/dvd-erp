@@ -26,7 +26,20 @@ export function TijelaDVD() {
   const [noviClanId, setNoviClanId] = useState('')
   const [novaFunkcija, setNovaFunkcija] = useState('član')
 
-  useEffect(() => { ucitaj() }, [])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      dohvatiClanoveTijela('upravni_odbor'),
+      dohvatiClanoveTijela('zapovjednistvo'),
+      dohvatiClanove({ status: 'aktivan' }),
+    ]).then(([uo, zap, svi]) => {
+      if (cancelled) return
+      setClanoviUO(uo); setClanoviZap(zap); setSviClanovi(svi)
+    }).catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   async function ucitaj() {
     setLoading(true)
@@ -154,7 +167,7 @@ export function TijelaDVD() {
                   </td>
                   <td className="px-4 py-3 text-[#bbb] hidden md:table-cell">{c.mobitel || '—'}</td>
                   <td className="px-4 py-3 text-[#999] text-xs hidden md:table-cell">
-                    {new Date(c.datum_od).toLocaleDateString('hr-HR')}
+                    {c.datum_od ? new Date(c.datum_od).toLocaleDateString('hr-HR') : '—'}
                   </td>
                   {jeUpravackaUloga() && (
                     <td className="px-4 py-3 text-right">

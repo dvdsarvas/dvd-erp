@@ -41,24 +41,38 @@ export function RacuniPage() {
 
   const jePredsjednik = korisnik?.uloga === 'admin' || korisnik?.uloga === 'predsjednik'
 
-  useEffect(() => { ucitaj() }, [godina, filterStatus])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiRacune(godina, filterStatus || undefined)
+      .then(d => { if (!cancelled) setRacuni(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [godina, filterStatus])
 
   useEffect(() => {
-    dohvatiStavkeZaKategorizaciju(godina).then(setStavkePlana).catch(console.error)
+    let cancelled = false
+    dohvatiStavkeZaKategorizaciju(godina)
+      .then(d => { if (!cancelled) setStavkePlana(d) })
+      .catch(console.error)
+    return () => { cancelled = true }
   }, [godina])
 
   // Auto-prijedlog kategorije pri unosu dobavljača
   useEffect(() => {
     if (forma.naziv_stranke.length < 3) return
+    let cancelled = false
     const timer = setTimeout(async () => {
       const kat = await dohvatiKategorijuDobavljaca(forma.naziv_stranke)
+      if (cancelled) return
       if (kat?.plan_stavka_id) {
         setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '', racunski_konto: kat.racunski_konto || '' }))
         const stavka = stavkePlana.find(s => s.id === kat.plan_stavka_id)
         if (stavka) setPrijedlogKategorije(stavka.naziv_stavke)
       }
     }, 500)
-    return () => clearTimeout(timer)
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [forma.naziv_stranke])
 
   async function ucitaj() {
@@ -87,7 +101,7 @@ export function RacuniPage() {
         opis: forma.opis.trim() || null,
         status: 'primljeno',
         ...(forma.plan_stavka_id ? { plan_stavka_id: forma.plan_stavka_id, racunski_konto: forma.racunski_konto } : {}),
-      } as any)
+      })
       if (formaDatoteka) await uploadRacunDokument(racun.id, formaDatoteka)
       setShowForma(false)
       setForma({ naziv_stranke: '', datum_racuna: new Date().toISOString().split('T')[0], iznos_ukupno: '', opis: '', plan_stavka_id: '', racunski_konto: '' })
@@ -95,7 +109,7 @@ export function RacuniPage() {
       setPrijedlogKategorije(null)
       await ucitaj()
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'message' in err ? (err as any).message : JSON.stringify(err)
+      const msg = err instanceof Error ? err.message : JSON.stringify(err)
       alert(`Greška: ${msg}`)
     }
   }
@@ -374,9 +388,9 @@ export function RacuniPage() {
                             </div>
                           )}
 
-                          {(r as any).poslano_knjigov_datum && (
+                          {r.poslano_knjigov_datum && (
                             <div className="text-xs px-3 py-2 rounded mb-3" style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
-                              Poslano knjigovođi: {new Date((r as any).poslano_knjigov_datum).toLocaleDateString('hr-HR')}
+                              Poslano knjigovođi: {new Date(r.poslano_knjigov_datum).toLocaleDateString('hr-HR')}
                             </div>
                           )}
 

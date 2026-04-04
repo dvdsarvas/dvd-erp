@@ -30,11 +30,13 @@ export async function generirajAkcije(
     zdravlje?.forEach(z => {
       if (!z.datum_sljedeceg) return
       const dani = diffDays(z.datum_sljedeceg, danas)
+      // Supabase vraća nested relation kao objekt ili array ovisno o schemi
+      const clan = Array.isArray(z.clanovi) ? z.clanovi[0] : z.clanovi
       akcije.push({
         id: `zdrav-${z.clan_id}`,
         prioritet: dani < 0 ? 1 : dani <= 14 ? 2 : 3,
         kategorija: 'zdravlje',
-        naslov: `Liječnički: ${(z.clanovi as any)?.prezime} ${(z.clanovi as any)?.ime}`,
+        naslov: `Liječnički: ${clan?.prezime ?? ''} ${clan?.ime ?? ''}`,
         opis: dani < 0 ? `Istekao ${Math.abs(dani)} dana` : `Ističe za ${dani} dana`,
         akcija_label: 'Unesi novi pregled',
         akcija_href: `/clanstvo/${z.clan_id}`,
@@ -93,7 +95,7 @@ export async function generirajAkcije(
     // Nespojene bankovne transakcije
     try {
       const { count: nespojenoCount } = await supabase
-        .from('bank_transakcije' as any)
+        .from('bank_transakcije')
         .select('id', { count: 'exact' })
         .eq('status', 'nespojeno')
       if ((nespojenoCount || 0) > 0) {

@@ -26,16 +26,18 @@ export function ZapisniciList() {
   const [godina, setGodina] = useState('')
 
   useEffect(() => {
+    let cancelled = false
     dohvatiSjednice()
       .then(data => {
-        // Samo sjednice koje su održane ili imaju zapisnik
+        if (cancelled) return
         const sZapisnikom = data.filter(s =>
           ['odrzana', 'zapisnik_potpisan', 'arhivirana'].includes(s.status)
         )
         setSjednice(sZapisnikom)
       })
-      .catch(err => console.error('Greška:', err))
-      .finally(() => setLoading(false))
+      .catch(err => { if (!cancelled) console.error('Greška:', err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   // Filtriranje

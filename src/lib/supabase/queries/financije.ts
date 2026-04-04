@@ -152,11 +152,16 @@ export async function dohvatiKategorijuDobavljaca(
   nazivStranke: string
 ): Promise<DobavljacKategorija | null> {
   const { data } = await supabase
-    .from('dobavljaci_kategorije' as any)
+    .from('dobavljaci_kategorije')
     .select('naziv_stranke, plan_stavka_id, racunski_konto')
     .eq('naziv_stranke', nazivStranke.toLowerCase().trim())
     .maybeSingle()
-  return data as unknown as DobavljacKategorija | null
+  if (!data) return null
+  return {
+    naziv_stranke: data.naziv_stranke,
+    plan_stavka_id: data.plan_stavka_id,
+    racunski_konto: data.racunski_konto ?? '',
+  }
 }
 
 /**
@@ -197,12 +202,26 @@ export async function dohvatiKnjiguUlaznihRacuna(
   godina: number
 ): Promise<KnjigaUlazniRacun[]> {
   const { data, error } = await supabase
-    .from('knjiga_ulaznih_racuna' as any)
+    .from('knjiga_ulaznih_racuna')
     .select('*')
     .eq('godina', godina)
     .order('redni_broj')
   if (error) throw error
-  return data as unknown as KnjigaUlazniRacun[]
+  return (data ?? []).map(r => ({
+    redni_broj: r.redni_broj ?? 0,
+    godina: r.godina ?? godina,
+    interni_broj: r.interni_broj,
+    datum_racuna: r.datum_racuna ?? '',
+    naziv_stranke: r.naziv_stranke ?? '',
+    opis: r.opis,
+    iznos_ukupno: Number(r.iznos_ukupno ?? 0),
+    status: r.status ?? '',
+    racunski_konto: r.racunski_konto,
+    kategorija_plana: r.kategorija_plana,
+    datum_placanja: r.datum_placanja,
+    likvidirao_ime: r.likvidirao_ime,
+    datum_likvidacije: r.datum_likvidacije,
+  }))
 }
 
 // ── Označi kao poslano knjigovođi ────────────────────────────
@@ -216,41 +235,56 @@ export async function oznacPoslatoKnjigov(
     .update({
       poslano_knjigov_datum: new Date().toISOString(),
       poslano_knjigov_id: korisnikId,
-    } as any)
+    })
     .in('id', racunIds)
   if (error) throw error
 }
 
 // ── e-Račun konfiguracija ───────────────────────────────────
 
-export interface EracunKonfiguracija {
-  id:             string
-  posrednik:      'eposlovanje' | 'moj_eracun' | 'fina'
-  api_username:   string
-  api_password:   string
-  api_key:        string
-  company_id:     string
-  aktivan:        boolean
-  zadnji_sync:    string | null
+type EracunKfgRow = Database['public']['Tables']['eracun_konfiguracija']['Row']
+type EracunKfgUpdate = Database['public']['Tables']['eracun_konfiguracija']['Update']
+
+export interface EracunKonfiguracija extends Omit<EracunKfgRow, 'posrednik' | 'api_username' | 'api_password' | 'api_key' | 'company_id' | 'aktivan' | 'zadnji_sync_br' | 'greska_zadnja'> {
+  posrednik: 'eposlovanje' | 'moj_eracun' | 'fina'
+  api_username: string
+  api_password: string
+  api_key: string
+  company_id: string
+  aktivan: boolean
   zadnji_sync_br: number
-  greska_zadnja:  string
+  greska_zadnja: string
+}
+
+function mapEracunKfg(r: EracunKfgRow): EracunKonfiguracija {
+  return {
+    ...r,
+    posrednik: r.posrednik as 'eposlovanje' | 'moj_eracun' | 'fina',
+    api_username: r.api_username ?? '',
+    api_password: r.api_password ?? '',
+    api_key: r.api_key ?? '',
+    company_id: r.company_id ?? '',
+    aktivan: r.aktivan ?? false,
+    zadnji_sync_br: r.zadnji_sync_br ?? 0,
+    greska_zadnja: r.greska_zadnja ?? '',
+  }
 }
 
 export async function dohvatiEracunKfg(): Promise<EracunKonfiguracija | null> {
   const { data } = await supabase
-    .from('eracun_konfiguracija' as any)
+    .from('eracun_konfiguracija')
     .select('*')
     .single()
-  return data as unknown as EracunKonfiguracija | null
+  return data ? mapEracunKfg(data) : null
 }
 
 export async function azurirajEracunKfg(
   id: string,
-  podaci: Partial<EracunKonfiguracija>
+  podaci: EracunKfgUpdate
 ): Promise<void> {
   const { error } = await supabase
-    .from('eracun_konfiguracija' as any)
-    .update({ ...podaci, updated_at: new Date().toISOString() } as any)
+    .from('eracun_konfiguracija')
+    .update({ ...podaci, updated_at: new Date().toISOString() })
     .eq('id', id)
   if (error) throw error
 }

@@ -12,7 +12,15 @@ export function ZakonskaIzvjesca() {
   const [loading, setLoading] = useState(true)
   const [godina, setGodina] = useState(tekucaGodina)
 
-  useEffect(() => { ucitaj() }, [godina])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiIzvjesca(godina)
+      .then(d => { if (!cancelled) setIzvjesca(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [godina])
 
   async function ucitaj() {
     setLoading(true)

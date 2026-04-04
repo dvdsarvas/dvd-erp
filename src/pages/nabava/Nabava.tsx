@@ -20,7 +20,15 @@ export function NabavaPage() {
   const [showForma, setShowForma] = useState(false)
   const [forma, setForma] = useState({ naziv: '', opis: '', procijenjeni_iznos: '', dobavljac: '' })
 
-  useEffect(() => { ucitaj() }, [])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiNabave()
+      .then(d => { if (!cancelled) setNabave(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   async function ucitaj() {
     setLoading(true)

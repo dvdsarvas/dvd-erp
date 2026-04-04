@@ -35,7 +35,7 @@ export function BankPage() {
     setUploading(true)
     try {
       const { error } = await supabase
-        .from('bank_transakcije' as any)
+        .from('bank_transakcije')
         .insert(transakcije.map(t => ({
           datum: t.datum,
           iznos: t.iznos,

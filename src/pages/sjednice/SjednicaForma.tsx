@@ -85,44 +85,49 @@ export function SjednicaForma({ defaultVrsta }: { defaultVrsta?: VrstaSjednice }
   // Učitaj članove prema vrsti sjednice (tijela)
   // Za skupštinu: svi aktivni članovi; za UO/Zapovjedništvo: samo članovi tijela
   useEffect(() => {
+    let cancelled = false
     dohvatiClanoveZaSjednicu(forma.vrsta)
-      .then(setClanovi)
+      .then(d => { if (!cancelled) setClanovi(d) })
       .catch(() => {
         // Fallback ako tijela_dvd tablica ne postoji — dohvati sve aktivne
         import('@/lib/supabase/queries/clanovi').then(({ dohvatiClanove }) => {
-          dohvatiClanove({ status: 'aktivan' }).then(setClanovi)
+          dohvatiClanove({ status: 'aktivan' }).then(d => { if (!cancelled) setClanovi(d) })
         })
       })
+    return () => { cancelled = true }
   }, [forma.vrsta])
 
   useEffect(() => {
-    if (isEdit && params.id) {
-      Promise.all([
-        dohvatiSjednicu(params.id),
-        dohvatiTocke(params.id),
-        dohvatiPrisutnost(params.id),
-      ]).then(([s, t, p]) => {
-        setForma({
-          vrsta: s.vrsta,
-          naziv: s.naziv,
-          datum: s.datum,
-          sat_pocetka: s.sat_pocetka || '',
-          sat_zavrsetka: s.sat_zavrsetka || '',
-          mjesto: s.mjesto || '',
-          status: s.status,
-          urbroj: s.urbroj || '',
-          klasa: s.klasa || '',
-          napomena: s.napomena || '',
-        })
-        setTocke(t)
-        setExistingPrisutnost(p)
-        setPrisutniIds(new Set(p.filter(pr => pr.prisutan).map(pr => pr.clan_id)))
-        setLoadingData(false)
-      }).catch(() => {
-        setGreska('Greška pri učitavanju.')
-        setLoadingData(false)
+    if (!isEdit || !params.id) return
+    let cancelled = false
+    Promise.all([
+      dohvatiSjednicu(params.id),
+      dohvatiTocke(params.id),
+      dohvatiPrisutnost(params.id),
+    ]).then(([s, t, p]) => {
+      if (cancelled) return
+      setForma({
+        vrsta: s.vrsta,
+        naziv: s.naziv,
+        datum: s.datum,
+        sat_pocetka: s.sat_pocetka || '',
+        sat_zavrsetka: s.sat_zavrsetka || '',
+        mjesto: s.mjesto || '',
+        status: s.status,
+        urbroj: s.urbroj || '',
+        klasa: s.klasa || '',
+        napomena: s.napomena || '',
       })
-    }
+      setTocke(t)
+      setExistingPrisutnost(p)
+      setPrisutniIds(new Set(p.filter(pr => pr.prisutan).map(pr => pr.clan_id)))
+      setLoadingData(false)
+    }).catch(() => {
+      if (cancelled) return
+      setGreska('Greška pri učitavanju.')
+      setLoadingData(false)
+    })
+    return () => { cancelled = true }
   }, [isEdit, params.id])
 
   // Kopiranje prošle sjednice (URL param ?kopiraj=ID&datum=YYYY-MM-DD)

@@ -20,9 +20,32 @@ export function Financije() {
   const [editKontoId, setEditKontoId] = useState<string | null>(null)
   const [editKonto, setEditKonto] = useState('')
 
-  useEffect(() => { ucitaj() }, [godina])
+  useEffect(() => {
+    let cancelled = false
+    async function ucitajAsync() {
+      setLoading(true)
+      try {
+        const p = await dohvatiFinPlan(godina).catch(() => null)
+        if (cancelled) return
+        setPlan(p)
+        if (p) {
+          const s = await dohvatiStavkePlana(p.id).catch(() => [] as FinStavka[])
+          if (!cancelled) setStavke(s)
+        } else {
+          setStavke([])
+        }
+      } catch (err) {
+        if (!cancelled) { console.error(err); setPlan(null); setStavke([]) }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    ucitajAsync()
+    return () => { cancelled = true }
+  }, [godina])
 
   async function ucitaj() {
+    // Ručni refresh nakon edit akcija
     setLoading(true)
     try {
       const p = await dohvatiFinPlan(godina).catch(() => null)
@@ -58,7 +81,7 @@ export function Financije() {
   }
 
   async function handleSpremiKonto(id: string) {
-    await azurirajStavku(id, { racunski_plan_konto: editKonto || null } as any)
+    await azurirajStavku(id, { racunski_plan_konto: editKonto || null })
     setEditKontoId(null); await ucitaj()
   }
 

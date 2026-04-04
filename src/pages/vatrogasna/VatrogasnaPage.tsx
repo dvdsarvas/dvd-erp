@@ -19,7 +19,15 @@ export function VatrogasnaPage() {
   const [formaInter, setFormaInter] = useState({ vrsta: 'pozar', kratki_opis: '', adresa: '', datum_dojave: new Date().toISOString().split('T')[0], sat_dojave: '', sat_zavrsetka: '' })
   const [formaVjezba, setFormaVjezba] = useState({ naziv: '', datum: new Date().toISOString().split('T')[0], lokacija: '', napomene: '' })
 
-  useEffect(() => { ucitaj() }, [godina])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([dohvatiIntervencije(godina), dohvatiVjezbe(godina)])
+      .then(([i, v]) => { if (!cancelled) { setIntervencije(i); setVjezbe(v) } })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [godina])
 
   async function ucitaj() {
     setLoading(true)

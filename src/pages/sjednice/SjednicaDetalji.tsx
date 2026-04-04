@@ -30,10 +30,35 @@ export function SjednicaDetalji() {
 
   useEffect(() => {
     if (!params.id) return
-    ucitaj(params.id)
+    let cancelled = false
+    const id = params.id
+    async function ucitajAsync() {
+      setLoading(true)
+      try {
+        const [s, t, p] = await Promise.all([
+          dohvatiSjednicu(id),
+          dohvatiTocke(id),
+          dohvatiPrisutnost(id),
+        ])
+        if (cancelled) return
+        const c = await dohvatiClanoveZaSjednicu(s.vrsta)
+        if (cancelled) return
+        setSjednica(s)
+        setTocke(t)
+        setPrisutnost(p)
+        setClanovi(c)
+      } catch (err) {
+        if (!cancelled) console.error('Greška:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    ucitajAsync()
+    return () => { cancelled = true }
   }, [params.id])
 
   async function ucitaj(id: string) {
+    // Rucni refresh
     setLoading(true)
     try {
       const [s, t, p] = await Promise.all([
@@ -385,7 +410,7 @@ function DostavaZapisnika({ sjednica, onRefresh }: { sjednica: Sjednica; onRefre
   const rokDostave = new Date(sjednica.datum)
   rokDostave.setDate(rokDostave.getDate() + 14)
   const daniDoRoka = Math.ceil((rokDostave.getTime() - Date.now()) / 86400000)
-  const dostavljen = !!(sjednica as any).zapisnik_dostavljen_datum
+  const dostavljen = !!sjednica.zapisnik_dostavljen_datum
 
   async function handleDostava(file?: File) {
     try {
@@ -423,7 +448,7 @@ function DostavaZapisnika({ sjednica, onRefresh }: { sjednica: Sjednica; onRefre
         </div>
         {dostavljen ? (
           <span className="px-3 py-1 bg-green-900/25 text-green-400 text-xs font-medium rounded-full">
-            ✓ Dostavljeno {(sjednica as any).zapisnik_dostavljen_datum ? new Date((sjednica as any).zapisnik_dostavljen_datum).toLocaleDateString('hr-HR') : ''}
+            ✓ Dostavljeno {sjednica.zapisnik_dostavljen_datum ? new Date(sjednica.zapisnik_dostavljen_datum).toLocaleDateString('hr-HR') : ''}
           </span>
         ) : jeUpravackaUloga() && (
           <div className="flex gap-2">

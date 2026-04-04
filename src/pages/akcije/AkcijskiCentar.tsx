@@ -50,9 +50,11 @@ export function AkcijskiCentar() {
 
   useEffect(() => {
     if (!korisnik) return
+    let cancelled = false
     generirajAkcije(korisnik.uloga)
-      .then(setAkcije)
-      .finally(() => setLoading(false))
+      .then(d => { if (!cancelled) setAkcije(d) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [korisnik])
 
   const hitne = akcije.filter(a => a.prioritet === 1)

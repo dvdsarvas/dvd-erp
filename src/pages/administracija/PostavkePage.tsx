@@ -98,7 +98,15 @@ function TabKorisnici() {
   const [forma, setForma] = useState({ email: '', ime: '', prezime: '', uloga: 'clan', lozinka: '' })
   const [editUloga, setEditUloga] = useState<{ id: string; uloga: string } | null>(null)
 
-  useEffect(() => { ucitaj() }, [])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiKorisnike()
+      .then(d => { if (!cancelled) setKorisnici(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   async function ucitaj() {
     setLoading(true)
@@ -262,7 +270,20 @@ function TabTijela() {
   const [noviClanId, setNoviClanId] = useState('')
   const [novaFunkcija, setNovaFunkcija] = useState('član')
 
-  useEffect(() => { ucitaj() }, [])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    Promise.all([
+      dohvatiClanoveTijela('upravni_odbor'),
+      dohvatiClanoveTijela('zapovjednistvo'),
+      dohvatiClanove({ status: 'aktivan' }),
+    ]).then(([uo, zap, svi]) => {
+      if (cancelled) return
+      setClanoviUO(uo); setClanoviZap(zap); setSviClanovi(svi)
+    }).catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   async function ucitaj() {
     setLoading(true)
@@ -387,18 +408,20 @@ function TabDVDPodaci() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  useEffect(() => { ucitaj() }, [])
-
-  async function ucitaj() {
+  useEffect(() => {
+    let cancelled = false
     setLoading(true)
-    try {
-      const [o, f] = await Promise.all([dohvatiOrganizaciju(), dohvatiFunkcionere()])
-      setOrg(o)
-      setFunk(f)
-      if (o) setForma(o)
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+    Promise.all([dohvatiOrganizaciju(), dohvatiFunkcionere()])
+      .then(([o, f]) => {
+        if (cancelled) return
+        setOrg(o)
+        setFunk(f)
+        if (o) setForma(o)
+      })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   async function handleSpremi() {
     if (!org) return
@@ -560,7 +583,7 @@ function TabDVDPodaci() {
         </div>
       )}
 
-      {org && (
+      {org?.updated_at && (
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Zadnja promjena: {new Date(org.updated_at).toLocaleDateString('hr-HR')}
         </p>
@@ -609,14 +632,15 @@ function TabZakonskeObveze() {
   const [editStavka, setEditStavka] = useState<ZakonskiSadrzaj | null>(null)
   const [showNova, setShowNova] = useState(false)
 
-  useEffect(() => { ucitaj() }, [])
-
-  async function ucitaj() {
+  useEffect(() => {
+    let cancelled = false
     setLoading(true)
-    try { setStavke(await dohvatiZakonskiSadrzaj()) }
-    catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+    dohvatiZakonskiSadrzaj()
+      .then(d => { if (!cancelled) setStavke(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
 
   const filtrirane = stavke.filter(s => s.kategorija === aktivnaKategorija)
 
@@ -733,7 +757,7 @@ function TabZakonskeObveze() {
                 kategorija: aktivnaKategorija as ZakonskiSadrzaj['kategorija'],
                 naslov: '', sadrzaj: '', rok_opis: '', izvor_zakon: '',
                 vaznost: 'normalno', redni_broj: filtrirane.length * 10 + 10,
-                aktivan: true, updated_at: '', updated_by: null,
+                aktivan: true, updated_at: '', updated_by: null, created_at: null,
               }}
               korisnikId={korisnik!.id}
               isNova={true}
@@ -905,13 +929,16 @@ function TabEracun() {
   const [testRezultat, setTestRezultat] = useState<{ ok: boolean; poruka: string } | null>(null)
 
   useEffect(() => {
+    let cancelled = false
     dohvatiEracunKfg()
       .then(k => {
+        if (cancelled) return
         setKfg(k)
         if (k) setForma({ posrednik: k.posrednik, api_username: k.api_username, api_password: k.api_password, api_key: k.api_key, company_id: k.company_id, aktivan: k.aktivan })
       })
-      .catch(err => console.error('e-Račun kfg greška:', err))
-      .finally(() => setLoading(false))
+      .catch(err => { if (!cancelled) console.error('e-Račun kfg greška:', err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   async function handleSpremi() {
@@ -919,7 +946,7 @@ function TabEracun() {
     setSaving(true)
     setError(null)
     try {
-      await azurirajEracunKfg(kfg.id, forma as any)
+      await azurirajEracunKfg(kfg.id, forma)
       setSuccess(true)
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: unknown) {

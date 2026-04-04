@@ -10,12 +10,14 @@ export function VatronetExport() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     Promise.all([
       dohvatiClanove({ status: 'aktivan' }),
       dohvatiImovinu(),
-    ]).then(([c, i]) => { setClanovi(c); setImovina(i) })
-      .catch(console.error)
-      .finally(() => setLoading(false))
+    ]).then(([c, i]) => { if (!cancelled) { setClanovi(c); setImovina(i) } })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   function exportCSV(data: string[][], filename: string) {

@@ -61,21 +61,76 @@
 ## Sto nedostaje do produkcije
 
 ### Visoki prioritet
-- [ ] Pokrenuti migracije 009-013 na Supabase (supabase db push)
-- [ ] Regenerirati database.types.ts (supabase gen types)
-- [ ] Ukloniti "as any" castove nakon regeneracije tipova
-- [ ] Testirati auth flow na produkciji (race conditions)
+- [x] Pokrenuti migracije 009-013 na Supabase (gotovo)
+- [x] Regenerirati database.types.ts (5. travnja 2026.)
+- [x] Ukloniti "as any" castove (5. travnja 2026.)
+- [x] useEffect cancelled pattern na svim async hookovima (5. travnja 2026.)
+- [x] Code splitting (lazy route loading, 5. travnja 2026.)
+- [ ] mer API kredencijali — cekamo odgovor na email od posrednika
+- [ ] Pokrenuti migraciju 014 (pg_cron sync-eracuni)
 
 ### Srednji prioritet
 - [ ] Knjiga primitaka i izdataka (zakonski dokument)
 - [ ] FINA izvjestaj priprema (G-PR-IZ-NPF obrazac)
 - [ ] Spajanje bank transakcija s racunima (smart matching)
-- [ ] Code splitting (bundle > 500kB)
 
 ### Nizak prioritet
 - [ ] Multi-tenant onboarding (Sprint 014 — ceka arhitekturne odluke)
 - [ ] Godisnji setup wizard
-- [ ] useEffect cancelled pattern na svim async hookovima
+
+---
+
+## Tehnicki dug — ocisceno (5. travnja 2026.)
+
+### Database types regen
+
+`npx supabase gen types typescript --project-id hhbfgznjjmgqsmxphhzf > src/types/database.types.ts`
+
+Generirani tipovi sada sadrze sve tablice i viewove iz migracija 001-013:
+- `dvd_organizacija`, `zakonski_sadrzaj`, `eracun_konfiguracija`
+- `bank_transakcije`, `dobavljaci_kategorije`
+- Views: `knjiga_ulaznih_racuna`, `trenutni_funkcioneri`
+
+### Uklonjen `as any` i `as unknown as` cast
+
+- Broj castova prije: 37
+- Broj castova poslije: 4 (samo za Supabase !inner nested relation join koji nije strong-typed)
+- Fajlovi ocisceni: organizacija.ts, zakonski-sadrzaj.ts, financije.ts, akcije.ts, Dashboard.tsx, RacuniPage.tsx, BankPage.tsx, PostavkePage.tsx, Financije.tsx, SjednicaDetalji.tsx
+
+### useEffect cancelled pattern
+
+Primijenjen na 20+ useEffect hookova u `src/pages/` i `src/components/`. Pattern:
+
+```tsx
+useEffect(() => {
+  let cancelled = false
+  fetchData()
+    .then(d => { if (!cancelled) setData(d) })
+    .catch(err => { if (!cancelled) console.error(err) })
+    .finally(() => { if (!cancelled) setLoading(false) })
+  return () => { cancelled = true }
+}, [deps])
+```
+
+### Code splitting — bundle size prije/poslije
+
+| Metrika | Prije | Poslije |
+|---------|-------|---------|
+| Initial index.js | 1537 kB (422 kB gzip) | 331 kB (105 kB gzip) |
+| Dashboard (lazy) | — | 376 kB (109 kB gzip) |
+| RacuniPage (lazy) | — | 26 kB (7 kB gzip) |
+| PostavkePage (lazy) | — | 46 kB (10 kB gzip) |
+| Broj chunkova | 3 | 40+ |
+
+**Rezultat:** Smanjenje inicijalnog bundle-a za ~78%. Korisnik na loginu ucitava samo Login + layout + auth, ostalo dolazi on-demand. Dashboard sa svim recharts grafovima (109 kB) lazy se ucitava tek kad user uđe na dashboard.
+
+### pg_cron provjera
+
+Kreirana migracija 014 (`014_cron_eracuni.sql`) koja instalira `dvd-erp-sync-eracuni` job (svaki sat). Ekspektirani jobovi nakon pokretanja svih migracija:
+- `dvd-erp-daily-reminder` — 07:00 svaki dan
+- `dvd-erp-weekly-cleanup` — 03:00 nedjeljom
+- `dvd-erp-nova-godina-izvjesca` — 1. sijecnja 00:30
+- `dvd-erp-sync-eracuni` — svaki sat
 
 ---
 

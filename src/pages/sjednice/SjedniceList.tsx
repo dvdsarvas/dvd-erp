@@ -52,10 +52,12 @@ function SjedniceList({ vrsteFilter, naslov, novaLabel, novaPath }: SjedniceList
   const [, navigate] = useLocation()
 
   useEffect(() => {
+    let cancelled = false
     dohvatiSjednice(vrsteFilter)
-      .then(setSjednice)
-      .catch(err => console.error('Greška:', err))
-      .finally(() => setLoading(false))
+      .then(d => { if (!cancelled) setSjednice(d) })
+      .catch(err => { if (!cancelled) console.error('Greška:', err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
   }, [])
 
   function handleKopirajProslu() {

@@ -10,7 +10,7 @@ export interface ClanTijela {
   id: string
   vrsta: string
   funkcija: string
-  datum_od: string
+  datum_od: string | null
   clan_id: string
   // Joined from clanovi
   ime: string
@@ -36,7 +36,16 @@ export async function dohvatiClanoveTijela(vrsta: VrstaTijela): Promise<ClanTije
 
   if (error) throw error
 
-  return (data as any[]).map(row => ({
+  // Supabase vraca clanovi kao objekt za !inner join
+  type Row = {
+    id: string
+    vrsta: string
+    funkcija: string
+    datum_od: string | null
+    clan_id: string
+    clanovi: { ime: string; prezime: string; mobitel: string | null; email: string | null }
+  }
+  return (data as unknown as Row[]).map(row => ({
     id: row.id,
     vrsta: row.vrsta,
     funkcija: row.funkcija,
@@ -108,7 +117,8 @@ export async function dohvatiClanoveZaSjednicu(vrstaSjednice: string): Promise<C
   if (error) throw error
 
   // Za zapovjedništvo: dodaj predsjednika ako nije već u listi (čl. 44 Statuta)
-  const clanovi = (data as any[]).map(row => row.clanovi as Clan)
+  type JoinRow = { clan_id: string; clanovi: Clan }
+  const clanovi = ((data ?? []) as unknown as JoinRow[]).map(row => row.clanovi)
 
   if (vrsta === 'zapovjednistvo') {
     const { data: predsjednikData } = await supabase
@@ -120,7 +130,7 @@ export async function dohvatiClanoveZaSjednicu(vrstaSjednice: string): Promise<C
       .limit(1)
 
     if (predsjednikData && predsjednikData.length > 0) {
-      const predsjednik = (predsjednikData[0] as any).clanovi as Clan
+      const predsjednik = (predsjednikData[0] as unknown as JoinRow).clanovi
       if (!clanovi.find(c => c.id === predsjednik.id)) {
         clanovi.push(predsjednik)
       }

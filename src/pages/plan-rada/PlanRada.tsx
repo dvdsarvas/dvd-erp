@@ -30,7 +30,15 @@ export function PlanRada() {
   const [forma, setForma] = useState({ naziv: '', kategorija: KATEGORIJE[0], rok: '', odgovoran: '', napomena: '' })
   const [filterKat, setFilterKat] = useState('')
 
-  useEffect(() => { ucitaj() }, [godina])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiAktivnosti(godina)
+      .then(d => { if (!cancelled) setAktivnosti(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [godina])
 
   async function ucitaj() {
     setLoading(true)

@@ -38,10 +38,46 @@ export function ClanDetalji() {
 
   useEffect(() => {
     if (!params.id) return
-    ucitaj(params.id)
+    let cancelled = false
+    const id = params.id
+    async function ucitajAsync() {
+      setLoading(true)
+      try {
+        const [c, cl, cert, zdr] = await Promise.all([
+          dohvatiClana(id),
+          dohvatiClanarine(id),
+          dohvatiCertifikate(id),
+          dohvatiZdravstvenePreglede(id),
+        ])
+        if (cancelled) return
+        setClan(c)
+        setClanarine(cl)
+        setCertifikati(cert)
+        setPregledi(zdr)
+        // Zvanja i odlikovanja
+        try {
+          const [pz, odl, sz] = await Promise.all([
+            dohvatiPovijestZvanja(id),
+            dohvatiOdlikovanja(id),
+            dohvatiSvaZvanja(),
+          ])
+          if (cancelled) return
+          setPovijestZv(pz)
+          setOdlikovanjaList(odl)
+          setSvaZvanja(sz)
+        } catch { /* tablice mozda ne postoje */ }
+      } catch (err) {
+        if (!cancelled) console.error('Greška:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    ucitajAsync()
+    return () => { cancelled = true }
   }, [params.id])
 
   async function ucitaj(id: string) {
+    // Rucni refresh nakon edit akcija
     setLoading(true)
     try {
       const [c, cl, cert, zdr] = await Promise.all([
@@ -338,7 +374,17 @@ function TabZdravlje({ pregledi, clanId }: { pregledi: ZdravstveniPregled[]; cla
   const [uploading, setUploading] = useState(false)
   const [uvjerenja, setUvjerenja] = useState<{ id: string; naziv: string; storage_path: string }[]>([])
 
-  useEffect(() => { ucitajUvjerenja() }, [clanId])
+  useEffect(() => {
+    let cancelled = false
+    supabase
+      .from('dokumenti')
+      .select('id, naziv, storage_path')
+      .eq('clan_id', clanId)
+      .eq('modul', 'clanstvo')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { if (!cancelled && data) setUvjerenja(data) })
+    return () => { cancelled = true }
+  }, [clanId])
 
   async function ucitajUvjerenja() {
     const { data } = await supabase

@@ -26,7 +26,15 @@ export function ArhivaPage() {
   const [showUpload, setShowUpload] = useState(false)
   const [forma, setForma] = useState({ naziv: '', modul: 'ostalo', opis: '', urbroj: '', klasa: '' })
 
-  useEffect(() => { ucitaj() }, [filterModul])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiDokumente(filterModul || undefined)
+      .then(d => { if (!cancelled) setDokumenti(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [filterModul])
 
   async function ucitaj() {
     setLoading(true)

@@ -50,10 +50,35 @@ export function ClanstvoList() {
   })
 
   useEffect(() => {
-    ucitaj()
+    let cancelled = false
+    async function ucitajAsync() {
+      setLoading(true)
+      try {
+        const [lista, clanarine] = await Promise.all([
+          dohvatiClanove({
+            kategorija: filtri.kategorija || undefined,
+            status: filtri.status || undefined,
+            pretraga: filtri.pretraga || undefined,
+          }),
+          dohvatiClanarineZaGodinu(tekucaGodina),
+        ])
+        if (cancelled) return
+        setClanovi(lista)
+        const map: Record<string, boolean> = {}
+        clanarine.forEach(c => { map[c.clan_id] = !!c.datum_placanja })
+        setPlacanjaMap(map)
+      } catch (err) {
+        if (!cancelled) console.error('Greška pri učitavanju članova:', err)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    ucitajAsync()
+    return () => { cancelled = true }
   }, [filtri.kategorija, filtri.status])
 
   async function ucitaj() {
+    // Ručni refresh (nakon pretrage)
     setLoading(true)
     try {
       const [lista, clanarine] = await Promise.all([

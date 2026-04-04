@@ -68,6 +68,7 @@ export function Dashboard() {
   const [financijskiData, setFinancijskiData] = useState<FinData[]>([])
 
   useEffect(() => {
+    let cancelled = false
     async function ucitaj() {
       try {
         const danas = new Date()
@@ -82,6 +83,8 @@ export function Dashboard() {
           supabase.from('racuni').select('iznos_ukupno').in('status', ['primljeno', 'u_obradi', 'odobreno']),
         ])
 
+        if (cancelled) return
+
         setStats({
           aktivnih_clanova: clanovi.count ?? 0,
           operativnih_vatrogasaca: clanovi.data?.filter(c => c.kategorija === 'dobrovoljni_vatrogasac').length ?? 0,
@@ -93,7 +96,7 @@ export function Dashboard() {
         // Aktivnost po mjesecima
         const [sjedniceMonth, intervencijeMonth] = await Promise.all([
           supabase.from('sjednice').select('datum').gte('datum', sixMonthsAgoStr),
-          supabase.from('intervencije').select('datum_intervencije').gte('datum_intervencije', sixMonthsAgoStr),
+          supabase.from('intervencije').select('datum_dojave').gte('datum_dojave', sixMonthsAgoStr),
         ])
 
         const monthMap: Record<string, { sjednice: number; intervencije: number }> = {}
@@ -109,7 +112,7 @@ export function Dashboard() {
           if (key && monthMap[key]) monthMap[key].sjednice++
         })
         intervencijeMonth.data?.forEach(i => {
-          const key = (i as any).datum_intervencije?.substring(0, 7)
+          const key = i.datum_dojave?.substring(0, 7)
           if (key && monthMap[key]) monthMap[key].intervencije++
         })
 
@@ -193,10 +196,11 @@ export function Dashboard() {
         const { data: zadnjeSjednice } = await supabase.from('sjednice').select('id, naziv, datum, status').order('datum', { ascending: false }).limit(5)
         if (zadnjeSjednice) setRecentSjednice(zadnjeSjednice)
 
-      } catch (err) { console.error(err) }
-      finally { setLoading(false) }
+      } catch (err) { if (!cancelled) console.error(err) }
+      finally { if (!cancelled) setLoading(false) }
     }
     ucitaj()
+    return () => { cancelled = true }
   }, [])
 
   const sat = new Date().getHours()

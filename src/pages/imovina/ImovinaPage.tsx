@@ -22,7 +22,15 @@ export function ImovinaPage() {
     registracija_do: '', tehnicki_do: '', osiguranje_do: '', osiguranje_polica: '',
   })
 
-  useEffect(() => { ucitaj() }, [filterVrsta])
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    dohvatiImovinu(filterVrsta || undefined)
+      .then(d => { if (!cancelled) setImovina(d) })
+      .catch(err => { if (!cancelled) console.error(err) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [filterVrsta])
 
   async function ucitaj() {
     setLoading(true)

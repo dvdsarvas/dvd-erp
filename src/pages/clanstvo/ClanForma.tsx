@@ -69,32 +69,35 @@ export function ClanForma() {
   const [greska, setGreska] = useState('')
 
   useEffect(() => {
-    if (isEdit && params.id) {
-      dohvatiClana(params.id).then(clan => {
-        setForma({
-          ime: clan.ime,
-          prezime: clan.prezime,
-          oib: clan.oib,
-          datum_rodenja: clan.datum_rodenja || '',
-          mjesto_rodenja: clan.mjesto_rodenja || '',
-          ulica: clan.ulica || '',
-          kucni_broj: clan.kucni_broj || '',
-          mjesto: clan.mjesto || '',
-          postanski_broj: clan.postanski_broj || '',
-          mobitel: clan.mobitel || '',
-          email: clan.email || '',
-          kategorija: clan.kategorija,
-          datum_uclanivanja: clan.datum_uclanivanja,
-          status: clan.status,
-          vatrogasno_zvanje: clan.vatrogasno_zvanje || '',
-          datum_stjecanja_zvanja: clan.datum_stjecanja_zvanja || '',
-        })
-        setLoadingData(false)
-      }).catch(() => {
-        setGreska('Greška pri učitavanju člana.')
-        setLoadingData(false)
+    if (!isEdit || !params.id) return
+    let cancelled = false
+    dohvatiClana(params.id).then(clan => {
+      if (cancelled) return
+      setForma({
+        ime: clan.ime,
+        prezime: clan.prezime,
+        oib: clan.oib,
+        datum_rodenja: clan.datum_rodenja || '',
+        mjesto_rodenja: clan.mjesto_rodenja || '',
+        ulica: clan.ulica || '',
+        kucni_broj: clan.kucni_broj || '',
+        mjesto: clan.mjesto || '',
+        postanski_broj: clan.postanski_broj || '',
+        mobitel: clan.mobitel || '',
+        email: clan.email || '',
+        kategorija: clan.kategorija,
+        datum_uclanivanja: clan.datum_uclanivanja,
+        status: clan.status,
+        vatrogasno_zvanje: clan.vatrogasno_zvanje || '',
+        datum_stjecanja_zvanja: clan.datum_stjecanja_zvanja || '',
       })
-    }
+      setLoadingData(false)
+    }).catch(() => {
+      if (cancelled) return
+      setGreska('Greška pri učitavanju člana.')
+      setLoadingData(false)
+    })
+    return () => { cancelled = true }
   }, [isEdit, params.id])
 
   function handleChange(field: keyof Forma, value: string) {
