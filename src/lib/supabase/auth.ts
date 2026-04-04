@@ -3,6 +3,9 @@ import { useAuthStore } from '@/store/auth.store'
 import type { Korisnik } from '@/store/auth.store'
 import { useDVDStore } from '@/store/dvd.store'
 
+// Guard protiv duplikatnih poziva loadKorisnik
+let _loadingKorisnik = false
+
 // Inicijalizacija — pozvati jednom u main.tsx
 export async function initAuth() {
   const { setLoading, logout } = useAuthStore.getState()
@@ -28,32 +31,37 @@ export async function initAuth() {
 }
 
 async function loadKorisnik(userId: string) {
-  const { setKorisnik, logout } = useAuthStore.getState()
+  if (_loadingKorisnik) return
+  _loadingKorisnik = true
 
-  const { data, error } = await supabase
-    .from('korisnici')
-    .select('id, email, ime, prezime, uloga, aktivan')
-    .eq('id', userId)
-    .single()
+  try {
+    const { setKorisnik, logout } = useAuthStore.getState()
 
-  if (error || !data) {
-    // Korisnik postoji u Auth ali ne u tablici korisnici
-    console.error('Korisnik nije pronađen u bazi:', error)
-    await supabase.auth.signOut()
-    logout()
-    return
+    const { data, error } = await supabase
+      .from('korisnici')
+      .select('id, email, ime, prezime, uloga, aktivan')
+      .eq('id', userId)
+      .single()
+
+    if (error || !data) {
+      console.error('Korisnik nije pronađen u bazi:', error)
+      await supabase.auth.signOut()
+      logout()
+      return
+    }
+
+    if (!data.aktivan) {
+      await supabase.auth.signOut()
+      logout()
+      return
+    }
+
+    setKorisnik(data as Korisnik)
+    // Čekaj učitavanje podataka organizacije prije nego app renderira
+    await useDVDStore.getState().init()
+  } finally {
+    _loadingKorisnik = false
   }
-
-  if (!data.aktivan) {
-    // Deaktiviran račun
-    await supabase.auth.signOut()
-    logout()
-    return
-  }
-
-  setKorisnik(data as Korisnik)
-  // Automatski učitaj podatke organizacije
-  useDVDStore.getState().init()
 }
 
 export async function signIn(email: string, lozinka: string) {

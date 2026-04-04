@@ -59,7 +59,7 @@ function Sidebar({ open }: { open: boolean }) {
 
   useEffect(() => {
     ucitajAlarme()
-  }, [])
+  }, [ucitajAlarme])
 
   const badgeMap: Record<string, number> = {
     '/zakonska-izvjesca': alarmi.filter(a => a.href === '/zakonska-izvjesca' && a.hitnost === 'crveno').length,

@@ -1,5 +1,6 @@
 import { Switch, Route } from 'wouter'
 import { useAuthStore } from '@/store/auth.store'
+import { useDVDStore } from '@/store/dvd.store'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { Login } from '@/pages/auth/Login'
 import { Dashboard } from '@/pages/dashboard/Dashboard'
@@ -35,9 +36,10 @@ const Placeholder = ({ naziv }: { naziv: string }) => (
 
 export default function App() {
   const { korisnik, loading } = useAuthStore()
+  const { loading: dvdLoading } = useDVDStore()
 
-  // Čekaj dok se auth inicijalizira
-  if (loading) {
+  // Čekaj dok se auth i DVD store inicijaliziraju
+  if (loading || dvdLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-slate-500">Učitavanje...</div>
