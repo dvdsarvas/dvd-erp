@@ -901,6 +901,8 @@ function TabEracun() {
   const [forma, setForma] = useState({ posrednik: 'eposlovanje', api_username: '', api_password: '', api_key: '', company_id: '', aktivan: false })
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [testing, setTesting] = useState(false)
+  const [testRezultat, setTestRezultat] = useState<{ ok: boolean; poruka: string } | null>(null)
 
   useEffect(() => {
     dohvatiEracunKfg()
@@ -1013,7 +1015,31 @@ function TabEracun() {
             className="px-5 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50" style={{ background: 'var(--accent)' }}>
             {saving ? 'Spremanje...' : 'Spremi postavke'}
           </button>
+          <button onClick={async () => {
+            setTesting(true)
+            setTestRezultat(null)
+            try {
+              const { data, error: fnError } = await supabase.functions.invoke('test-eracun-vezu', {
+                body: { posrednik: forma.posrednik, username: forma.api_username, password: forma.api_password, companyId: forma.company_id }
+              })
+              if (fnError) setTestRezultat({ ok: false, poruka: fnError.message })
+              else setTestRezultat(data as { ok: boolean; poruka: string })
+            } catch (err) {
+              setTestRezultat({ ok: false, poruka: err instanceof Error ? err.message : String(err) })
+            } finally {
+              setTesting(false)
+            }
+          }} disabled={testing || !forma.api_username || !forma.company_id}
+            className="px-5 py-2 text-sm font-medium rounded-lg disabled:opacity-50" style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
+            {testing ? 'Testiranje...' : 'Testiraj vezu'}
+          </button>
         </div>
+
+        {testRezultat && (
+          <div className={`mt-3 text-sm px-4 py-3 rounded-lg ${testRezultat.ok ? 'bg-green-900/20 border border-green-500/30 text-green-400' : 'bg-red-900/20 border border-red-500/30 text-red-400'}`}>
+            {testRezultat.poruka}
+          </div>
+        )}
       </div>
 
       {/* Status sinkronizacije */}
