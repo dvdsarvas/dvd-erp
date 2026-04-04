@@ -94,6 +94,41 @@
 
 ---
 
+## Deployano na Supabase (4. travnja 2026.)
+
+### Edge Functions (deployed)
+
+| Funkcija | Status | Opis |
+|----------|--------|------|
+| sync-eracuni | Deployed | Automatsko preuzimanje e-racuna iz ePoslovanje/mojeRacun (pg_cron svakih sat) |
+| send-reminder | Deployed | Dnevni alarmi + tjedni digest email predsjedniku (ponedjeljkom) |
+| test-eracun-vezu | Deployed | Test API veze za Postavke → e-Racun tab (proxy za CORS) |
+| send-email | Ranije deployed | Genericko slanje emaila putem Resend API |
+| onboarding-init | Deployed | Inicijalizacija novog DVD-a (multi-tenant priprema) |
+
+Dashboard: https://supabase.com/dashboard/project/hhbfgznjjmgqsmxphhzf/functions
+
+### Migracije (status na bazi)
+
+| Migracija | Na bazi | Opis |
+|-----------|---------|------|
+| 001-008 | Da | Inicijalna shema, RLS, cron, tijela, predlosci, zvanja |
+| 009 | Da | dvd_organizacija + view trenutni_funkcioneri |
+| 010 | Da | zakonski_sadrzaj + seed 14 stavki |
+| 011 | Da | racuni kategorija + trigger + knjiga view |
+| 011b | Da | aop_konto → racunski_konto rename |
+| 012 | Da | bank_transakcije |
+| 013 | Ceka | eracun_integracija (kolumne + eracun_konfiguracija) |
+
+### Sto jos treba deployati
+
+- [ ] Migracija 013 (eracun_integracija) — pokrenuti u SQL Editoru
+- [ ] Regenerirati database.types.ts nakon svih migracija
+- [ ] Postaviti RESEND_API_KEY kao secret za Edge Functions
+- [ ] Postaviti pg_cron job za sync-eracuni i send-reminder
+
+---
+
 ## Tehnicke napomene
 
 **Bundle size:** ~1.5MB JS + 283KB xlsx (lazy loaded). Preporuka: code splitting.
