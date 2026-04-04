@@ -138,3 +138,39 @@ Dashboard: https://supabase.com/dashboard/project/hhbfgznjjmgqsmxphhzf/functions
 **Auth flow:** Koristi promise dedup pattern za sprecavanje paralelnih loadKorisnik poziva. App.tsx gate-a na oba loading statea (auth + dvd store).
 
 **CSS:** Sve boje su na CSS varijablama (:root u index.css). Komponente koriste inline style s var(--...) umjesto Tailwind klasa za boje.
+
+---
+
+## Deployano na Cloudflare (4. travnja 2026.)
+
+### Hosting
+
+**Platforma:** Cloudflare Workers with Static Assets (unified Workers + Pages)
+**URL:** https://dvd-erp.dvdsarvas.workers.dev
+**Repo veza:** GitHub dvdsarvas/dvd-erp → auto-deploy na push u master
+
+### Konfiguracija
+
+- `wrangler.jsonc` — assets.directory = "./dist", not_found_handling = "single-page-application"
+- `.env.production` — VITE_SUPABASE_URL i VITE_SUPABASE_ANON_KEY (publishable key je javan, stvarna sigurnost je u RLS)
+- Build command: `npm run build`
+- Output directory: `dist`
+
+### Rijeseni deploy problemi
+
+| Problem | Uzrok | Rjesenje |
+|---------|-------|---------|
+| `_redirects` infinite loop | Worker format ne podrzava _redirects | Zamijenjeno s wrangler.jsonc not_found_handling |
+| Supabase URL/KEY undefined u bundle-u | Env vars nisu dostupne u build time | .env.production commitan u repo (public key) |
+| Krivi dobavljac u XML parseru | getElementsByTagNameNS vraca prvi match u cijelom dokumentu | Parsing unutar AccountingSupplierParty bloka + regex fallback |
+| VIEW knjiga_ulaznih_racuna ambiguous | JOIN bez table aliasa | r. prefiksi na sve kolumne |
+
+---
+
+## Sljedeci koraci
+
+1. Provjeriti produkcijski deploy na https://dvd-erp.dvdsarvas.workers.dev
+2. Postaviti custom domain (npr. dvdsarvas.hr ili app.dvdsarvas.hr)
+3. Testirati e-Racun sync s pravim ePoslovanje kredencijalima
+4. Regenerirati database.types.ts i maknuti `as any` castove
+5. Code splitting za smanjenje bundle size-a
