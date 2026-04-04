@@ -207,8 +207,10 @@ export function RacuniPage() {
                 try {
                   const file = e.target.files?.[0]
                   if (!file) return
+                  e.target.value = '' // reset za ponovni odabir istog fajla
                   const podaci = await parsirajEracunFajl(file)
                   if (!podaci) { alert('Nije moguće pročitati XML datoteku. Provjerite format (UBL 2.1).'); return }
+                  setActiveTab('lista')
                   setForma(f => ({ ...f, naziv_stranke: podaci.naziv_stranke, datum_racuna: podaci.datum_racuna, iznos_ukupno: String(podaci.iznos_ukupno), opis: `e-Račun ${podaci.br_racuna}`, plan_stavka_id: '', racunski_konto: '' }))
                   setShowForma(true)
                   if (podaci.naziv_stranke) {
