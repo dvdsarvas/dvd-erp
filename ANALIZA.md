@@ -175,12 +175,11 @@ Dashboard: https://supabase.com/dashboard/project/hhbfgznjjmgqsmxphhzf/functions
 | 012 | Da | bank_transakcije |
 | 013 | Ceka | eracun_integracija (kolumne + eracun_konfiguracija) |
 
-### Sto jos treba deployati
+### Sto jos treba
 
-- [ ] Migracija 013 (eracun_integracija) — pokrenuti u SQL Editoru
-- [ ] Regenerirati database.types.ts nakon svih migracija
-- [ ] Postaviti RESEND_API_KEY kao secret za Edge Functions
-- [ ] Postaviti pg_cron job za sync-eracuni i send-reminder
+- [ ] Pokrenuti migraciju 014 u Supabase SQL Editoru
+- [ ] mer API — cekamo email od integracije@moj-eracun.hr
+      (numericki Username, lozinka za API, registracija SoftwareId-a)
 
 ---
 
