@@ -17,8 +17,10 @@ import {
   KATEGORIJE_ZAKON
 } from '@/lib/supabase/queries/zakonski-sadrzaj'
 import type { ZakonskiSadrzaj } from '@/lib/supabase/queries/zakonski-sadrzaj'
+import { dohvatiEracunKfg, azurirajEracunKfg } from '@/lib/supabase/queries/financije'
+import type { EracunKonfiguracija } from '@/lib/supabase/queries/financije'
 
-type Tab = 'korisnici' | 'dvd' | 'tijela' | 'zakoni' | 'gdpr'
+type Tab = 'korisnici' | 'dvd' | 'tijela' | 'zakoni' | 'eracun' | 'gdpr'
 type Tijelo = 'upravni_odbor' | 'zapovjednistvo'
 
 const ULOGE = [
@@ -65,6 +67,7 @@ export function PostavkePage() {
             { key: 'tijela' as Tab, label: 'Tijela DVD-a' },
             { key: 'dvd' as Tab, label: 'Podaci DVD-a' },
             { key: 'zakoni' as Tab, label: 'Zakonske obveze' },
+            { key: 'eracun' as Tab, label: 'e-Račun' },
             { key: 'gdpr' as Tab, label: 'Moji podaci (GDPR)' },
           ]).map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -80,6 +83,7 @@ export function PostavkePage() {
       {tab === 'tijela' && <TabTijela />}
       {tab === 'dvd' && <TabDVDPodaci />}
       {tab === 'zakoni' && <TabZakonskeObveze />}
+      {tab === 'eracun' && <TabEracun />}
       {tab === 'gdpr' && <TabGDPR />}
     </div>
   )
@@ -883,6 +887,156 @@ function EditForma({ stavka, korisnikId, isNova = false, onSpremi, onOdustani }:
         <button onClick={onOdustani} className="px-4 py-2 text-sm rounded-lg" style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
           Odustani
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Tab: e-Račun konfiguracija ─────────────────────────────
+
+function TabEracun() {
+  const [kfg, setKfg] = useState<EracunKonfiguracija | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [forma, setForma] = useState({ posrednik: 'eposlovanje', api_username: '', api_password: '', api_key: '', company_id: '', aktivan: false })
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    dohvatiEracunKfg()
+      .then(k => {
+        setKfg(k)
+        if (k) setForma({ posrednik: k.posrednik, api_username: k.api_username, api_password: k.api_password, api_key: k.api_key, company_id: k.company_id, aktivan: k.aktivan })
+      })
+      .catch(err => console.error('e-Račun kfg greška:', err))
+      .finally(() => setLoading(false))
+  }, [])
+
+  async function handleSpremi() {
+    if (!kfg) return
+    setSaving(true)
+    setError(null)
+    try {
+      await azurirajEracunKfg(kfg.id, forma as any)
+      setSuccess(true)
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: unknown) {
+      setError(`Greška: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) return <div className="p-8 text-center" style={{ color: 'var(--text-muted)' }}>Učitavanje...</div>
+
+  if (!kfg) return (
+    <div className="border rounded-xl p-6" style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}>
+      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+        e-Račun konfiguracija nije inicijalizirana. Pokrenite migraciju 013 na Supabase bazi.
+      </p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-6">
+      {success && (
+        <div className="bg-green-900/20 border border-green-500/30 text-green-400 text-sm px-4 py-3 rounded-lg">
+          Postavke uspješno spremljene
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-900/20 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Info */}
+      <div className="border rounded-lg p-4 text-sm" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+        e-Račun integracija automatski preuzima primljene račune iz ePoslovanje ili mojeRačun servisa.
+        Nakon konfiguracije, sustav provjerava inbox svakih sat vremena i uvozi nove račune.
+      </div>
+
+      {/* Forma */}
+      <div className="border rounded-xl p-5" style={{ background: 'var(--bg-elevated)', borderColor: 'var(--border)' }}>
+        <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Pristupni podaci</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>Posrednik</label>
+            <select value={forma.posrednik} onChange={e => setForma(f => ({ ...f, posrednik: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+              <option value="eposlovanje">ePoslovanje</option>
+              <option value="moj_eracun">mojeRačun</option>
+              <option value="fina">FINA (nije podržano)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>OIB organizacije</label>
+            <input type="text" value={forma.company_id} onChange={e => setForma(f => ({ ...f, company_id: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              placeholder="npr. 48874677674" maxLength={11} />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>API korisničko ime</label>
+            <input type="text" value={forma.api_username} onChange={e => setForma(f => ({ ...f, api_username: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              placeholder="Korisničko ime za API" />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>API lozinka</label>
+            <input type="password" value={forma.api_password} onChange={e => setForma(f => ({ ...f, api_password: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              placeholder="Lozinka za API" />
+          </div>
+          <div>
+            <label className="block text-xs mb-1" style={{ color: 'var(--text-secondary)' }}>API ključ (opcionalno)</label>
+            <input type="text" value={forma.api_key} onChange={e => setForma(f => ({ ...f, api_key: e.target.value }))}
+              className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+              placeholder="Ako posrednik zahtijeva API ključ" />
+          </div>
+          <div className="flex items-center gap-3">
+            <label className="block text-xs" style={{ color: 'var(--text-secondary)' }}>Aktiviraj automatski sync</label>
+            <button
+              onClick={() => setForma(f => ({ ...f, aktivan: !f.aktivan }))}
+              className="w-10 h-5 rounded-full transition-colors relative"
+              style={{ background: forma.aktivan ? 'var(--success)' : 'var(--border-strong)' }}
+            >
+              <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform" style={{ left: forma.aktivan ? '22px' : '2px' }} />
+            </button>
+            <span className="text-xs" style={{ color: forma.aktivan ? 'var(--success)' : 'var(--text-muted)' }}>
+              {forma.aktivan ? 'Aktivno' : 'Neaktivno'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mt-5">
+          <button onClick={handleSpremi} disabled={saving}
+            className="px-5 py-2 text-white text-sm font-medium rounded-lg disabled:opacity-50" style={{ background: 'var(--accent)' }}>
+            {saving ? 'Spremanje...' : 'Spremi postavke'}
+          </button>
+        </div>
+      </div>
+
+      {/* Status sinkronizacije */}
+      <div className="border rounded-xl p-5" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border)' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>Status sinkronizacije</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <dt className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Zadnji sync</dt>
+            <dd style={{ color: 'var(--text-primary)' }}>
+              {kfg.zadnji_sync ? new Date(kfg.zadnji_sync).toLocaleString('hr-HR') : 'Nikada'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Ukupno uvezeno</dt>
+            <dd style={{ color: 'var(--text-primary)' }}>{kfg.zadnji_sync_br} računa</dd>
+          </div>
+          <div>
+            <dt className="text-xs mb-0.5" style={{ color: 'var(--text-secondary)' }}>Zadnja greška</dt>
+            <dd style={{ color: kfg.greska_zadnja ? 'var(--danger)' : 'var(--success)' }}>
+              {kfg.greska_zadnja || 'Nema grešaka'}
+            </dd>
+          </div>
+        </div>
       </div>
     </div>
   )
