@@ -1,73 +1,39 @@
-# React + TypeScript + Vite
+# DVD ERP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sustav za digitalizaciju dokumentacije dobrovoljnih vatrogasnih drustava.
+Pilot: DVD Sarvas.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 18 + TypeScript + Vite
+- Wouter (routing), Zustand (state), Tailwind CSS v4
+- Supabase (auth, baza, storage, Edge Functions)
+- framer-motion (animacije), recharts (grafovi), docx (dokumenti), xlsx (export)
 
-## React Compiler
+## Pokretanje
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev       # dev server
+npm run build     # produkcijski build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Moduli
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- Dashboard s KPI grafovima i alarmima
+- Evidencija clanstva (CRUD, certifikati, zdravstveni pregledi, clanarine)
+- Sjednice (skupstine, UO, zapovjednistvo) s generiranjem dokumenata
+- Financijski plan (plan vs ostvareno, automatski iz racuna)
+- Racuni (workflow, e-Racun XML import, knjiga ulaznih, kategorizacija)
+- Zakonska izvjesca, nabava, imovina, vatrogasna djelatnost
+- Akcijski centar (proaktivna to-do lista)
+- Pripremi skupstinu (6 dokumenata jednim klikom)
+- Import bankovnih izvadaka (CSV parser)
+- Postavke (korisnici, tijela, podaci DVD-a, zakonske obveze wiki, e-Racun config)
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Dokumentacija
+
+- `CLAUDE.md` — upute za Claude Code
+- `ANALIZA.md` — analiza stanja projekta
+- `RAZVOJNI_PLAN_ROADMAP.md` — roadmap sprintova
+- `dvd-erp-docs/` — arhitektura, baza, moduli, sigurnost, migracije
