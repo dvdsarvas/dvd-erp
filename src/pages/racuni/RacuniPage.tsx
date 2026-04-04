@@ -26,7 +26,7 @@ export function RacuniPage() {
   const [godina, setGodina] = useState(tekucaGodina)
   const [filterStatus, setFilterStatus] = useState('')
   const [showForma, setShowForma] = useState(false)
-  const [forma, setForma] = useState({ naziv_stranke: '', datum_racuna: new Date().toISOString().split('T')[0], iznos_ukupno: '', opis: '', plan_stavka_id: '', aop_konto: '' })
+  const [forma, setForma] = useState({ naziv_stranke: '', datum_racuna: new Date().toISOString().split('T')[0], iznos_ukupno: '', opis: '', plan_stavka_id: '', racunski_konto: '' })
   const [formaDatoteka, setFormaDatoteka] = useState<File | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [docs, setDocs] = useState<Record<string, { id: string; naziv: string; storage_path: string }[]>>({})
@@ -52,7 +52,7 @@ export function RacuniPage() {
     const timer = setTimeout(async () => {
       const kat = await dohvatiKategorijuDobavljaca(forma.naziv_stranke)
       if (kat?.plan_stavka_id) {
-        setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '', aop_konto: kat.aop_konto || '' }))
+        setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '', racunski_konto: kat.racunski_konto || '' }))
         const stavka = stavkePlana.find(s => s.id === kat.plan_stavka_id)
         if (stavka) setPrijedlogKategorije(stavka.naziv_stavke)
       }
@@ -85,11 +85,11 @@ export function RacuniPage() {
         iznos_ukupno: parseFloat(forma.iznos_ukupno),
         opis: forma.opis.trim() || null,
         status: 'primljeno',
-        ...(forma.plan_stavka_id ? { plan_stavka_id: forma.plan_stavka_id, aop_konto: forma.aop_konto } : {}),
+        ...(forma.plan_stavka_id ? { plan_stavka_id: forma.plan_stavka_id, racunski_konto: forma.racunski_konto } : {}),
       } as any)
       if (formaDatoteka) await uploadRacunDokument(racun.id, formaDatoteka)
       setShowForma(false)
-      setForma({ naziv_stranke: '', datum_racuna: new Date().toISOString().split('T')[0], iznos_ukupno: '', opis: '', plan_stavka_id: '', aop_konto: '' })
+      setForma({ naziv_stranke: '', datum_racuna: new Date().toISOString().split('T')[0], iznos_ukupno: '', opis: '', plan_stavka_id: '', racunski_konto: '' })
       setFormaDatoteka(null)
       setPrijedlogKategorije(null)
       await ucitaj()
@@ -256,7 +256,7 @@ export function RacuniPage() {
                     onChange={e => {
                       const id = e.target.value
                       const stavka = stavkePlana.find(s => s.id === id)
-                      setForma(f => ({ ...f, plan_stavka_id: id, aop_konto: stavka?.racunski_plan_konto || '' }))
+                      setForma(f => ({ ...f, plan_stavka_id: id, racunski_konto: stavka?.racunski_plan_konto || '' }))
                       setPrijedlogKategorije(null)
                     }}
                     className="w-full px-3 py-2 border rounded-lg text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-elevated)' }}>
@@ -432,7 +432,7 @@ function KnjigaUlaznihRacunaTab({ godina }: { godina: number }) {
       'Naziv stranke': s.naziv_stranke,
       'Opis': s.opis || '',
       'Iznos (EUR)': s.iznos_ukupno,
-      'AOP konto': s.aop_konto || '',
+      'Konto': s.racunski_konto || '',
       'Kategorija plana': s.kategorija_plana || '',
       'Status': s.status,
       'Datum plaćanja': s.datum_placanja || '',

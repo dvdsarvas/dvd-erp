@@ -141,7 +141,7 @@ export async function dohvatiDokumentUrl(path: string): Promise<string> {
 export interface DobavljacKategorija {
   naziv_stranke: string
   plan_stavka_id: string | null
-  aop_konto: string
+  racunski_konto: string
 }
 
 /**
@@ -153,7 +153,7 @@ export async function dohvatiKategorijuDobavljaca(
 ): Promise<DobavljacKategorija | null> {
   const { data } = await supabase
     .from('dobavljaci_kategorije' as any)
-    .select('naziv_stranke, plan_stavka_id, aop_konto')
+    .select('naziv_stranke, plan_stavka_id, racunski_konto')
     .eq('naziv_stranke', nazivStranke.toLowerCase().trim())
     .maybeSingle()
   return data as unknown as DobavljacKategorija | null
@@ -186,7 +186,7 @@ export interface KnjigaUlazniRacun {
   opis: string | null
   iznos_ukupno: number
   status: string
-  aop_konto: string | null
+  racunski_konto: string | null
   kategorija_plana: string | null
   datum_placanja: string | null
   likvidirao_ime: string | null
