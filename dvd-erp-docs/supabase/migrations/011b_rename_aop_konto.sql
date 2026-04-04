@@ -126,8 +126,10 @@ CREATE TRIGGER racun_sync_trigger
 
 -- ============================================================
 -- Ažuriraj VIEW knjiga_ulaznih_racuna
+-- DROP jer se mijenja tip kolumne redni_broj (bigint → int)
 -- ============================================================
-CREATE OR REPLACE VIEW knjiga_ulaznih_racuna AS
+DROP VIEW IF EXISTS knjiga_ulaznih_racuna;
+CREATE VIEW knjiga_ulaznih_racuna AS
 SELECT
   ROW_NUMBER() OVER (
     PARTITION BY EXTRACT(YEAR FROM r.datum_racuna)
