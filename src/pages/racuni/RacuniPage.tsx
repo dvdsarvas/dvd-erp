@@ -204,15 +204,20 @@ export function RacuniPage() {
             <label className="px-3 py-2 text-sm font-medium rounded-lg cursor-pointer" style={{ background: 'var(--bg-overlay)', color: 'var(--text-secondary)' }}>
               Uvezi XML
               <input type="file" accept=".xml" className="hidden" onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                const podaci = await parsirajEracunFajl(file)
-                if (!podaci) { alert('Nije moguće pročitati XML datoteku.'); return }
-                setForma(f => ({ ...f, naziv_stranke: podaci.naziv_stranke, datum_racuna: podaci.datum_racuna, iznos_ukupno: String(podaci.iznos_ukupno), opis: `e-Račun ${podaci.br_racuna}`, plan_stavka_id: '', racunski_konto: '' }))
-                setShowForma(true)
-                if (podaci.naziv_stranke) {
-                  const kat = await dohvatiKategorijuDobavljaca(podaci.naziv_stranke)
-                  if (kat?.plan_stavka_id) setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '' }))
+                try {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  const podaci = await parsirajEracunFajl(file)
+                  if (!podaci) { alert('Nije moguće pročitati XML datoteku. Provjerite format (UBL 2.1).'); return }
+                  setForma(f => ({ ...f, naziv_stranke: podaci.naziv_stranke, datum_racuna: podaci.datum_racuna, iznos_ukupno: String(podaci.iznos_ukupno), opis: `e-Račun ${podaci.br_racuna}`, plan_stavka_id: '', racunski_konto: '' }))
+                  setShowForma(true)
+                  if (podaci.naziv_stranke) {
+                    const kat = await dohvatiKategorijuDobavljaca(podaci.naziv_stranke)
+                    if (kat?.plan_stavka_id) setForma(f => ({ ...f, plan_stavka_id: kat.plan_stavka_id || '', racunski_konto: kat.racunski_konto || '' }))
+                  }
+                } catch (err) {
+                  console.error('XML upload greška:', err)
+                  alert(`Greška pri učitavanju XML datoteke: ${err instanceof Error ? err.message : String(err)}`)
                 }
               }} />
             </label>
