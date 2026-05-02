@@ -2,7 +2,6 @@ import { supabase } from '../client'
 import type { Database } from '@/types/database.types'
 
 type Korisnik = Database['public']['Tables']['korisnici']['Row']
-type KorisnikInsert = Database['public']['Tables']['korisnici']['Insert']
 type KorisnikUpdate = Database['public']['Tables']['korisnici']['Update']
 
 export type { Korisnik, KorisnikUpdate }
@@ -28,34 +27,17 @@ export async function azurirajKorisnika(id: string, podaci: KorisnikUpdate) {
 }
 
 /**
- * Kreira novog korisnika u Auth + korisnici tablici.
- * Koristi Supabase Auth admin funkciju (zahtijeva service role za produkciju).
- * Za dev: korisnik se kreira ručno u Supabase dashboardu, ovdje samo u tablici.
+ * Kreira novog korisnika atomarno u auth.users + korisnici tablici
+ * preko Edge Function `kreiraj-korisnika` (koristi service_role key).
+ * Ne mijenja sesiju trenutnog korisnika i radi rollback ako insert padne.
  */
 export async function kreirajKorisnika(podaci: { email: string; ime: string; prezime: string; uloga: string; lozinka: string }) {
-  // Kreiraj Auth korisnika
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: podaci.email,
-    password: podaci.lozinka,
+  const { data, error } = await supabase.functions.invoke('kreiraj-korisnika', {
+    body: podaci,
   })
-  if (authError) throw authError
-  if (!authData.user) throw new Error('Korisnik nije kreiran u Auth sustavu')
-
-  // Kreiraj zapis u korisnici tablici s istim ID-jem
-  const { data, error } = await supabase
-    .from('korisnici')
-    .insert({
-      id: authData.user.id,
-      email: podaci.email,
-      ime: podaci.ime,
-      prezime: podaci.prezime,
-      uloga: podaci.uloga as KorisnikInsert['uloga'],
-      aktivan: true,
-    })
-    .select()
-    .single()
-  if (error) throw error
-  return data as Korisnik
+  if (error) throw new Error(error.message)
+  if (data?.error) throw new Error(data.error)
+  return data.korisnik as Korisnik
 }
 
 export async function deaktivirajKorisnika(id: string) {
